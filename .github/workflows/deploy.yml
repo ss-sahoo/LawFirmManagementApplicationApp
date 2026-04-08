@@ -1,0 +1,40 @@
+name: Deploy Law Firm Management Project
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Server
+        run: |
+          ssh sammy@${{ secrets.SERVER_IP }} "cd /home/sammy/LawFirmManagementApplicationApp && \
+          git pull origin main && \
+          echo '=== Updating Backend ===' && \
+          source backend/venv/bin/activate && \
+          pip install -r backend/requirements.txt && \
+          python3 backend/manage.py migrate && \
+          python3 backend/manage.py collectstatic --no-input && \
+          deactivate && \
+          echo '=== Updating Frontend ===' && \
+          cd frontend && \
+          npm install && \
+          npm run build && \
+          pm2 restart lawfirm-frontend && \
+          echo '=== Restarting Backend ===' && \
+          sudo systemctl restart gunicorn && \
+          echo '=== Deployment Complete! ==='"
