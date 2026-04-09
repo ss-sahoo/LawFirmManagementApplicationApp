@@ -22,6 +22,9 @@ class Firm(models.Model):
     country = models.CharField(max_length=100, default='India')
     address = models.TextField(blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
+    registration_number = models.CharField(max_length=100, blank=True)
+    logo = models.ImageField(upload_to='firm_logos/', null=True, blank=True)
+    practice_areas = models.JSONField(default=list, blank=True) # Criminal, Civil, etc.
     
     # Contact Info
     phone_number = models.CharField(max_length=20)
@@ -40,6 +43,13 @@ class Firm(models.Model):
     
     # Status
     is_active = models.BooleanField(default=True)
+    partner = models.ForeignKey(
+        'partners.Partner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='onboarded_firms'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

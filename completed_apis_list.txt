@@ -1,7 +1,4 @@
-# Law Firm Management Application - Completed APIs List
-# Generated on: 2026-04-09
-
-Total APIs Completed: 41
+Total APIs Completed: 58
 
 ## Authentication APIs
 1. POST /api/auth/login_username_password/ - Login with username/email and password.
@@ -38,7 +35,7 @@ Total APIs Completed: 41
 
 ## Document Management APIs
 26. GET /api/documents/ - List documents uploaded by or shared with the user.
-27. POST /api/documents/ - Upload new documents (Aadhar, PAN, Bar Certificate, etc.).
+27. POST /api/documents/ - Upload new documents (Aadhar, PAN, FIR, Petition, etc.).
 28. GET /api/documents/{id}/ - Retrieve document metadata and file URL.
 29. PATCH /api/documents/{id}/ - Update document or verify it (Admin only).
 30. DELETE /api/documents/{id}/ - Delete an uploaded document.
@@ -55,9 +52,25 @@ Total APIs Completed: 41
 37. DELETE /api/partners/{id}/ - Remove a partner record.
 
 ## Audit Log APIs
-38. GET /api/audit-logs/ - View system-wide or firm-specific activity logs with action/resource filters.
+38. GET /api/audit-logs/ - View system-wide or firm-specific activity logs.
 39. GET /api/audit-logs/{id}/ - View detailed activity log entry.
 
 ## Global Configuration APIs
-40. GET /api/config/settings/ - Retrieve global system settings (e.g., trial periods).
+40. GET /api/config/settings/ - Retrieve global system settings.
 41. PATCH /api/config/update_settings/ - Update global configurations (Platform Owner only).
+
+## Analytics & Dashboard APIs
+42. GET /api/dashboard/ - Retrieve role-based analytics cards and statistics (Platform Owner, Partner Manager, Super Admin).
+
+## Case Management APIs
+43. GET /api/cases/ - List all cases (filtered by user role and firm).
+44. POST /api/cases/ - Create a new case record (Super Admin/Admin/Advocate).
+45. GET /api/cases/{id}/ - Detailed case view with Activity Timeline, Hearings, and Drafts.
+46. PATCH /api/cases/{id}/ - Update case details or status (triggers Activity Log).
+47. DELETE /api/cases/{id}/ - Remove a case record.
+
+
+
+
+## Client Management APIs
+58. GET /api/clients/ - List clients associated with the firm (Coming Soon/Model Ready).

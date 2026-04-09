@@ -8,6 +8,7 @@ from django.conf import settings
 import random
 import string
 from datetime import timedelta
+import requests
 
 from .models import CustomUser, LoginCredential, OTPVerification, UserInvitation, UserFirmRole, GlobalConfiguration
 from firms.models import Firm, Branch
@@ -28,9 +29,40 @@ def generate_otp():
 
 
 def send_otp_sms(phone_number, otp_code):
-    """Send OTP via SMS"""
-    print(f"SMS to {phone_number}: Your OTP is {otp_code}")
-    return True
+    """Send OTP via MSG91"""
+    if getattr(settings, 'OTP_TEST_MODE', False):
+        print(f"OTP_TEST_MODE: Skip sending SMS to {phone_number}. OTP is {otp_code}")
+        return True
+
+    url = "https://control.msg91.com/api/v5/otp"
+    
+    # Clean phone number for MSG91 (expects digits only, including country code)
+    mobile = phone_number.replace('+', '').replace(' ', '').replace('-', '')
+    if len(mobile) == 10:
+        mobile = f"91{mobile}" # Default to India if only 10 digits
+        
+    payload = {
+        "template_id": settings.MSG91_TEMPLATE_ID,
+        "mobile": mobile,
+        "authkey": settings.MSG91_AUTHKEY,
+        "otp": otp_code,
+        "otp_length": len(otp_code)
+    }
+    
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        res_data = response.json()
+        if res_data.get('type') == 'success':
+            return True
+        print(f"MSG91 Error for {mobile}: {res_data.get('message')}")
+        return False
+    except Exception as e:
+        print(f"Failed to send MSG91 SMS to {mobile}: {str(e)}")
+        return False
 
 
 def send_notification_email(email, subject, message):
@@ -423,15 +455,21 @@ class AuthenticationViewSet(viewsets.ViewSet):
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['post'], url_name='request_phone_otp')
-    def request_phone_otp(self, request):
-        """Request OTP for phone login"""
+    @action(detail=False, methods=['post'], url_name='send_otp')
+    def send_otp(self, request):
+        """Request OTP for phone login (Aliased to send-otp)"""
         serializer = PhoneOTPLoginSerializer(data=request.data)
         if serializer.is_valid():
             phone_number = serializer.validated_data['phone_number']
-            user = CustomUser.objects.get(phone_number=phone_number)
+            try:
+                user = CustomUser.objects.get(phone_number=phone_number)
+            except CustomUser.DoesNotExist:
+                return Response({'error': 'User not found with this phone number'}, status=status.HTTP_404_NOT_FOUND)
             
-            otp_code = generate_otp()
+            if getattr(settings, 'OTP_TEST_MODE', False):
+                otp_code = settings.OTP_TEST_CODE
+            else:
+                otp_code = generate_otp()
             
             otp_obj = OTPVerification.objects.create(
                 user=user,
@@ -445,9 +483,12 @@ class AuthenticationViewSet(viewsets.ViewSet):
             log_audit(user, 'otp_sent', f'OTP sent to phone: {phone_number}')
             
             return Response({
+                'success': True,
                 'message': 'OTP sent to your phone',
-                'otp_id': str(otp_obj.id),
-                'expires_in_minutes': 10
+                'data': {
+                    'otp_id': str(otp_obj.id),
+                    'expires_in_minutes': 10
+                }
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -473,9 +514,12 @@ class AuthenticationViewSet(viewsets.ViewSet):
             log_audit(user, 'otp_sent', f'OTP sent to email: {email}')
             
             return Response({
+                'success': True,
                 'message': 'OTP sent to your email',
-                'otp_id': str(otp_obj.id),
-                'expires_in_minutes': 10
+                'data': {
+                    'otp_id': str(otp_obj.id),
+                    'expires_in_minutes': 10
+                }
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -489,10 +533,16 @@ class AuthenticationViewSet(viewsets.ViewSet):
             otp_code = serializer.validated_data['otp_code']
             
             if phone_number:
-                user = CustomUser.objects.get(phone_number=phone_number)
+                try:
+                    user = CustomUser.objects.get(phone_number=phone_number)
+                except CustomUser.DoesNotExist:
+                    return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
                 otp_type = 'phone'
             else:
-                user = CustomUser.objects.get(email=email)
+                try:
+                    user = CustomUser.objects.get(email=email)
+                except CustomUser.DoesNotExist:
+                    return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
                 otp_type = 'email'
             
             try:
@@ -537,9 +587,12 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 log_audit(user, 'otp_verified', f'OTP verified via {otp_type}')
                 
                 return Response({
-                    'token': token.key,
-                    'user': CustomUserSerializer(user).data,
-                    'message': 'Login successful'
+                    'success': True,
+                    'message': 'Login successful',
+                    'data': {
+                        'access': token.key,
+                        'user': CustomUserSerializer(user).data
+                    }
                 })
             
             except OTPVerification.DoesNotExist:
