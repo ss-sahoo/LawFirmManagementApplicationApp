@@ -52,6 +52,9 @@ INSTALLED_APPS = [
     "partners",
     "audit",
     "storages",
+    "cases",
+    "clients",
+    "tasks",
 ]
 
 MIDDLEWARE = [
@@ -226,3 +229,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000').split(',')
+
+# MSG91 OTP Configuration
+MSG91_AUTHKEY = os.getenv("MSG91_AUTHKEY")
+MSG91_TEMPLATE_ID = os.getenv("MSG91_TEMPLATE_ID")
+OTP_TEST_MODE = os.getenv("OTP_TEST_MODE", "False") == "True"
+OTP_TEST_CODE = os.getenv("OTP_TEST_CODE", "999999")
+

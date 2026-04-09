@@ -1,7 +1,132 @@
+from django.utils import timezone
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from django.db.models import Count, Q
 from .models import Firm, Branch
 from .serializers import FirmSerializer, BranchSerializer
+from accounts.models import CustomUser
+from partners.models import Partner
+from documents.models import UserDocument
+from audit.models import AuditLog
+
+# Import models from newly created apps
+try:
+    from cases.models import Case
+    from clients.models import Client
+    from tasks.models import Task
+except ImportError:
+    Case = None
+    Client = None
+    Task = None
+
+
+class DashboardViewSet(viewsets.ViewSet):
+    """
+    Role-based dashboard analytics for:
+    - Platform Owners (Global Stats)
+    - Partner Managers (Onboarded Firm Stats)
+    - Super Admins (Firm-specific Stats)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        user = request.user
+        role = user.user_type
+        firm = user.firm
+
+        stats = {
+            'role': role,
+            'role_display': user.get_user_type_display(),
+            'user_name': user.get_full_name(),
+        }
+
+        if role == 'platform_owner':
+            stats.update(self.get_platform_owner_stats())
+        elif role == 'partner_manager':
+            stats.update(self.get_partner_manager_stats(user))
+        elif role in ['super_admin', 'admin']:
+            stats.update(self.get_firm_admin_stats(user, firm))
+        else:
+            stats.update(self.get_generic_user_stats(user, firm))
+
+        return Response(stats)
+
+    def get_platform_owner_stats(self):
+        return {
+            'cards': {
+                'total_firms': Firm.objects.count(),
+                'active_users': CustomUser.objects.filter(is_active=True).count(),
+                'case_statistics': {
+                    'total': Case.objects.count() if Case else 0,
+                    'running': Case.objects.filter(status='running').count() if Case else 0,
+                    'disposed': Case.objects.filter(status='disposed').count() if Case else 0,
+                    'closed': Case.objects.filter(status='closed').count() if Case else 0,
+                }
+            },
+            'recent_audits': AuditLog.objects.all()[:10].values('action', 'description', 'created_at')
+        }
+
+    def get_partner_manager_stats(self, user):
+        # Filter firms onboarded by this partner
+        partner_profile = getattr(user, 'partner_profile', None)
+        if partner_profile:
+            firms_qs = Firm.objects.filter(partner=partner_profile)
+        else:
+            # Fallback if no specific partner profile but user is partner_manager type
+            # (In a real system, we'd ensure the profile exists)
+            firms_qs = Firm.objects.none()
+            
+        return {
+            'cards': {
+                'total_firms_onboarded': firms_qs.count(),
+                'active_firms': firms_qs.filter(is_active=True).count(),
+                'pending_firms': firms_qs.filter(is_active=False).count(),
+                'recent_activity': AuditLog.objects.filter(
+                    user__firm__in=firms_qs
+                )[:10].values('action', 'description', 'created_at')
+            }
+        }
+
+    def get_firm_admin_stats(self, user, firm):
+        if not firm:
+            return {'error': 'User not associated with a firm'}
+            
+        return {
+            'cards': {
+                'total_cases': {
+                    'total': Case.objects.filter(firm=firm).count() if Case else 0,
+                    'running': Case.objects.filter(firm=firm, status='running').count() if Case else 0,
+                    'disposed': Case.objects.filter(firm=firm, status='disposed').count() if Case else 0,
+                    'closed': Case.objects.filter(firm=firm, status='closed').count() if Case else 0,
+                },
+                'total_clients': Client.objects.filter(firm=firm).count() if Client else 0,
+                'total_documents': UserDocument.objects.filter(user__firm=firm).count(),
+                'team_members': CustomUser.objects.filter(firm=firm).count(),
+                'todos': {
+                    'pending': Task.objects.filter(firm=firm, status='pending').count() if Task else 0,
+                    'upcoming': Task.objects.filter(firm=firm, due_date__gt=timezone.now()).count() if Task else 0,
+                }
+            },
+            'firm_info': {
+                'name': firm.firm_name,
+                'code': firm.firm_code,
+                'subscription': firm.subscription_type,
+                'practice_areas': firm.practice_areas
+            }
+        }
+
+    def get_generic_user_stats(self, user, firm):
+        if not firm:
+            return {}
+        return {
+            'cards': {
+                'assigned_cases': Case.objects.filter(firm=firm).count() if Case else 0,
+                'my_tasks': Task.objects.filter(assigned_to=user, status='pending').count() if Task else 0,
+                'firm_documents': UserDocument.objects.filter(user__firm=firm).count(),
+            }
+        }
 
 
 class FirmViewSet(viewsets.ModelViewSet):

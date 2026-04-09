@@ -12,6 +12,13 @@ class UserDocument(models.Model):
         ('driving_license', 'Driving License'),
         ('bar_certificate', 'Bar Council Certificate'),
         ('degree', 'Educational Degree'),
+        ('fir', 'FIR'),
+        ('petition', 'Petition'),
+        ('evidence', 'Evidence'),
+        ('order', 'Court Order'),
+        ('agreement', 'Agreement'),
+        ('affidavit', 'Affidavit'),
+        ('notice', 'Legal Notice'),
         ('other', 'Other'),
     ]
     
@@ -23,8 +30,16 @@ class UserDocument(models.Model):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, related_name='documents')
+    case = models.ForeignKey(
+        'cases.Case', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='case_documents'
+    )
     
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+    document_category = models.CharField(max_length=50, blank=True) # Tagging for grouping
     document_number = models.CharField(max_length=100, blank=True)
     document_file = models.FileField(upload_to='documents/%Y/%m/%d/')
     
