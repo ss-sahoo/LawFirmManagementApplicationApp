@@ -1,5 +1,6 @@
-import { PartnerOrSalesDetailPage } from '@/components/platform/page-templates';
+import { UserDetailPage } from '@/components/platform/page-templates';
 
-export default function PlatformOwnerPartnerDetailPage() {
-  return <PartnerOrSalesDetailPage accent="#0e2340" title="Partner Manager Detail" entity="partner" />;
+export default async function PlatformOwnerPartnerDetailPage({ params }: { params: Promise<{ partnerId: string }> }) {
+  const { partnerId } = await params;
+  return <UserDetailPage accent="#0e2340" userId={partnerId} />;
 }

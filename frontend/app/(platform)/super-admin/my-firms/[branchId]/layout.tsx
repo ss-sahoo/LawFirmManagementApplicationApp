@@ -20,6 +20,7 @@ export default function BranchDetailLayout({
     { name: 'Advocates', path: `${basePath}/advocates` },
     { name: 'Paralegal', path: `${basePath}/paralegal` },
     { name: 'Clients', path: `${basePath}/clients` },
+    { name: 'Settings', path: `${basePath}/settings` },
   ];
 
   return (

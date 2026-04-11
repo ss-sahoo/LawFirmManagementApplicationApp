@@ -123,7 +123,7 @@ export function SearchBar({ placeholder }: { placeholder: string }) {
       <input
         type="text"
         placeholder={placeholder}
-        className="w-full bg-transparent text-sm text-gray-600 outline-none placeholder:text-gray-400"
+        className="w-full bg-transparent text-sm text-black font-semibold outline-none placeholder:text-gray-400"
       />
     </div>
   );
@@ -237,7 +237,7 @@ export function DocumentHistory({
             setPage(1);
           }}
           placeholder="Search documents..."
-          className="w-full bg-transparent text-sm text-gray-600 outline-none placeholder:text-gray-400"
+          className="w-full bg-transparent text-sm text-black font-semibold outline-none placeholder:text-gray-400"
         />
       </div>
       <div className="overflow-x-auto">
@@ -340,13 +340,13 @@ export function FormGrid({
             <textarea
               placeholder={field.placeholder}
               rows={4}
-              className="w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+              className="w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 py-3 text-sm text-black font-semibold outline-none placeholder:text-gray-400"
             />
           ) : (
             <input
               type={field.type ?? 'text'}
               placeholder={field.placeholder}
-              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none placeholder:text-gray-400"
             />
           )}
         </div>

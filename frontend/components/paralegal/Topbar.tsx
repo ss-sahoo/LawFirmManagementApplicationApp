@@ -55,7 +55,7 @@ export default function ParalegalTopbar() {
       <div className="flex items-center gap-2">
         <div className="hidden md:flex items-center gap-2 bg-[#f7f8fa] border border-gray-100 rounded-xl px-3 py-2 w-56">
           <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          <input type="text" placeholder="Search tasks…" className="bg-transparent text-sm text-gray-600 outline-none w-full" />
+          <input type="text" placeholder="Search tasks…" className="bg-transparent text-sm text-black font-semibold outline-none w-full placeholder:text-gray-400" />
         </div>
         <button className="relative w-9 h-9 rounded-xl bg-[#f7f8fa] border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors">
           <Bell className="w-4 h-4 text-gray-500" />

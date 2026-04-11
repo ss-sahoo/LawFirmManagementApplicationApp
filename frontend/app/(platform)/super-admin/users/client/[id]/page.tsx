@@ -1,10 +1,6 @@
-import { ClientFormPage } from '@/components/platform/page-templates';
+import { UserDetailPage } from '@/components/platform/page-templates';
 
-export default function SuperAdminClientDetail() {
-  return (
-    <ClientFormPage
-      accent="#984c1f"
-      detail={true}
-    />
-  );
+export default async function SuperAdminClientUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <UserDetailPage accent="#6366f1" userId={id} />;
 }

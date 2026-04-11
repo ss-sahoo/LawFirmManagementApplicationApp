@@ -1,12 +1,6 @@
-import { TeamMemberFormPage } from '@/components/platform/page-templates';
+import { UserDetailPage } from '@/components/platform/page-templates';
 
-export default function SuperAdminAdvocateDetail() {
-  return (
-    <TeamMemberFormPage
-      accent="#984c1f"
-      detail={true}
-      title="Advocate Profile"
-      description="Review and update this advocate's details, workload, and settings."
-    />
-  );
+export default async function SuperAdminAdvocateUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <UserDetailPage accent="#0284c7" userId={id} />;
 }

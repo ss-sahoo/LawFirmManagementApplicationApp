@@ -20,7 +20,8 @@ export const API = {
     DETAIL: (id: string) => `/api/users/${id}/`,
     REGISTER: "/api/users/register/",
     ADD_USER: "/api/users/add_user/",
-    SWITCH_FIRM: "/api/users/switch_firm/"
+    SWITCH_FIRM: "/api/users/switch_firm/",
+    CHANGE_PASSWORD: "/api/users/change_password/"
   },
   FIRMS: {
     LIST: "/api/firms/",
@@ -45,6 +46,10 @@ export const API = {
   AUDIT_LOGS: {
     LIST: "/api/audit-logs/",
     DETAIL: (uuid: string) => `/api/audit-logs/${uuid}/`
+  },
+  CONFIG: {
+    GET: "/api/config/settings/",
+    UPDATE: "/api/config/update_settings/"
   }
 };
 

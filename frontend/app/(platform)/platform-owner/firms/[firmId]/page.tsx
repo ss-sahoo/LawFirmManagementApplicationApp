@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
+import {
   Building2, Users, Briefcase, FileSignature, Shield, ArrowLeft,
   Edit, Save, X, Calendar, DollarSign, Download, Clock, Loader2,
   Mail, Phone, MapPin, Globe, Hash
@@ -56,7 +56,7 @@ export default function PlatformOwnerFirmOverviewPage({
   params: Promise<{ firmId: string }>;
 }) {
   const { firmId } = use(params);
-  
+
   const [activeTab, setActiveTab] = useState<'Overview' | 'Billing' | 'Settings'>('Overview');
   const [firm, setFirm] = useState<FirmDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +67,14 @@ export default function PlatformOwnerFirmOverviewPage({
     firm_name: '',
     email: '',
     phone_number: '',
+    subscription_type: '',
+    is_active: true,
+    website: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    postal_code: '',
   });
 
   useEffect(() => {
@@ -83,6 +91,14 @@ export default function PlatformOwnerFirmOverviewPage({
           firm_name: data.firm_name,
           email: data.email,
           phone_number: data.phone_number,
+          subscription_type: data.subscription_type,
+          is_active: data.is_active,
+          website: data.website || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          country: data.country || 'India',
+          postal_code: data.postal_code || '',
         });
       } catch (err: any) {
         setError(err.message || 'Failed to load firm details');
@@ -94,9 +110,25 @@ export default function PlatformOwnerFirmOverviewPage({
     fetchFirm();
   }, [firmId]);
 
-  const handleSave = () => {
-    if (firm) {
-      setFirm({ ...firm, ...editedDetails });
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const response = await customFetch(API.FIRMS.DETAIL(firmId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editedDetails),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Failed to update firm details');
+      }
+      setFirm(data);
+      alert('Firm details updated successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update firm details');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -135,7 +167,7 @@ export default function PlatformOwnerFirmOverviewPage({
           <Link href="/platform-owner/firms" className="p-2 mt-1 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
-          
+
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm min-w-[320px]">
             <div>
               <div className="flex justify-between items-start">
@@ -173,19 +205,19 @@ export default function PlatformOwnerFirmOverviewPage({
 
         {/* ── TABS ── */}
         <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm h-fit">
-          <button 
+          <button
             onClick={() => setActiveTab('Overview')}
             className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'Overview' ? 'bg-[#0e2340] text-white shadow' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
           >
             Overview
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('Billing')}
             className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'Billing' ? 'bg-[#0e2340] text-white shadow' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
           >
             Billing
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('Settings')}
             className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'Settings' ? 'bg-[#0e2340] text-white shadow' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
           >
@@ -276,47 +308,153 @@ export default function PlatformOwnerFirmOverviewPage({
       ) : activeTab === 'Settings' ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-2xl">
           <div className="mb-6 border-b border-gray-100 pb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Edit className="w-5 h-5 text-gray-400"/> Edit Firm Profile</h2>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Edit className="w-5 h-5 text-gray-400" /> Edit Firm Profile</h2>
             <p className="text-sm text-gray-500 mt-1">Update the core contact identity and metadata for this law firm.</p>
           </div>
           <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Firm Name</label>
+                <input
+                  type="text"
+                  value={editedDetails.firm_name}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, firm_name: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Website</label>
+                <input
+                  type="text"
+                  value={editedDetails.website}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, website: e.target.value })}
+                  placeholder="https://example.com"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                <input
+                  type="email"
+                  value={editedDetails.email}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, email: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                <input
+                  type="text"
+                  value={editedDetails.phone_number}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, phone_number: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Firm Name</label>
-              <input 
-                type="text" 
-                value={editedDetails.firm_name}
-                onChange={(e) => setEditedDetails({...editedDetails, firm_name: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Office Address</label>
+              <textarea
+                rows={2}
+                value={editedDetails.address}
+                onChange={(e) => setEditedDetails({ ...editedDetails, address: e.target.value })}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white resize-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
-              <input 
-                type="email" 
-                value={editedDetails.email}
-                onChange={(e) => setEditedDetails({...editedDetails, email: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
-              />
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">City</label>
+                <input
+                  type="text"
+                  value={editedDetails.city}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, city: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">State</label>
+                <input
+                  type="text"
+                  value={editedDetails.state}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, state: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
+                <input
+                  type="text"
+                  value={editedDetails.country}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, country: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Postal Code</label>
+                <input
+                  type="text"
+                  value={editedDetails.postal_code}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, postal_code: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
-              <input 
-                type="text" 
-                value={editedDetails.phone_number}
-                onChange={(e) => setEditedDetails({...editedDetails, phone_number: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
-              />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subscription Plan</label>
+                <select 
+                  value={editedDetails.subscription_type}
+                  onChange={(e) => setEditedDetails({ ...editedDetails, subscription_type: e.target.value })}
+                  className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] focus:bg-white"
+                >
+                  <option value="trial">Trial</option>
+                  <option value="basic">Basic</option>
+                  <option value="professional">Professional</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Account Status</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <button 
+                    onClick={() => setEditedDetails({ ...editedDetails, is_active: !editedDetails.is_active })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${editedDetails.is_active ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${editedDetails.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                  <span className={`text-sm font-semibold ${editedDetails.is_active ? 'text-emerald-600' : 'text-gray-400'}`}>
+                    {editedDetails.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
             </div>
-            
+
             <div className="pt-4 border-t border-gray-100 mt-6 flex gap-3 justify-end">
-              <button 
-                onClick={() => setEditedDetails({ firm_name: firm.firm_name, email: firm.email, phone_number: firm.phone_number })} 
+              <button
+                onClick={() => setEditedDetails({ 
+                  firm_name: firm.firm_name, 
+                  email: firm.email, 
+                  phone_number: firm.phone_number,
+                  subscription_type: firm.subscription_type,
+                  is_active: firm.is_active,
+                  website: firm.website || '',
+                  address: firm.address || '',
+                  city: firm.city || '',
+                  state: firm.state || '',
+                  country: firm.country || 'India',
+                  postal_code: firm.postal_code || '',
+                })}
                 className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Discard Changes
               </button>
-              <button 
-                onClick={handleSave} 
+              <button
+                onClick={handleSave}
                 className="px-5 py-2.5 text-sm font-semibold text-white bg-[#0e2340] rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
               >
                 <Save className="w-4 h-4" /> Save Profile

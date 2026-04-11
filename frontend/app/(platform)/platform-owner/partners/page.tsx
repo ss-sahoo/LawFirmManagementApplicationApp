@@ -1,5 +1,11 @@
-import PartnerManagerPage from '@/components/platform/partner';
+import { TeamPage } from '@/components/platform/page-templates';
 
 export default function PlatformOwnerPartnersPage() {
-  return <PartnerManagerPage />;
+  return (
+    <TeamPage
+      accent="#0e2340"
+      role="partner_manager"
+      viewBase="/platform-owner/partners"
+    />
+  );
 }

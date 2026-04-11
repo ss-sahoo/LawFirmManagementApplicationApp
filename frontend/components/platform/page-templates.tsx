@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   ArrowRight,
@@ -44,6 +44,12 @@ import {
   reportCards,
   teamFields,
 } from '@/components/platform/mock-data';
+import { customFetch } from '@/lib/fetch';
+import { API } from '@/lib/api';
+import { Loader2, PlusCircle, Save, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+const classNames = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 type AccentProps = {
   accent: string;
@@ -500,17 +506,10 @@ export function SettingsPageTemplate({
       <PageSection eyebrow="Settings" title={title} description={description} />
       <SplitPanels
         left={
-          <Panel title="Profile and Verification" subtitle="Core identity, contact, and verification placeholders.">
-            <FormGrid
-              fields={[
-                { label: 'Full Name', placeholder: 'Sarah Chen' },
-                { label: 'Email Address', placeholder: 'owner@firm.com', type: 'email' },
-                { label: 'Phone Number', placeholder: '+91 98XXXXXX45' },
-                { label: 'Password', placeholder: '********', type: 'password' },
-                { label: 'Verification Notes', placeholder: 'Email verified. Phone OTP pending refresh.', type: 'textarea', wide: true },
-              ]}
-            />
-          </Panel>
+          <div className="space-y-8">
+            <ProfileInformationPanel accent={accent} />
+            <ChangePasswordPanel accent={accent} />
+          </div>
         }
         right={<InfoAside accent={accent} title="Preference Areas" items={['Identity and verification', 'Notification and reminder preferences', 'Access control visibility and internal audit reminders']} />}
       />
@@ -645,27 +644,418 @@ export function CaseDetailPage({
   );
 }
 
-export function TeamPage({ accent, viewBase }: AccentProps & { viewBase?: string }) {
+export function TeamPage({ accent, viewBase, role }: AccentProps & { viewBase?: string; role?: string }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await customFetch(API.USERS.LIST);
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.detail || 'Failed to fetch users');
+        
+        let results = data.results || data;
+        if (role) {
+          results = results.filter((u: any) => u.user_type === role);
+        }
+        setUsers(results);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, [role]);
+
+  const rows = users.map((u, i) => ({
+    name: `${u.first_name} ${u.last_name}`,
+    role: u.user_type,
+    practice: u.practice_area || 'N/A',
+    cases: '0',
+    status: u.is_active ? 'Active' : 'Inactive',
+    viewHref: viewBase ? `${viewBase}/${u.id}` : undefined,
+  }));
+
+  const metrics = [
+    { label: 'Total Members', value: users.length.toString() },
+    { label: 'Active', value: users.filter(u => u.is_active).length.toString() },
+    { label: 'Inactive', value: users.filter(u => !u.is_active).length.toString() },
+    { label: 'Pending', value: '0' },
+  ];
+
   return (
     <div className="space-y-8">
-      <PageSection eyebrow="Team Management" title="Firm Team Directory" description="Create admins, advocates, and paralegals with role-aware access and workload visibility." actions={<ActionLink href="/super-admin/team/new" label="Add Team Member" />} />
-      <MetricGrid accent={accent} metrics={[{ label: 'Team Members', value: '12' }, { label: 'Advocates', value: '6' }, { label: 'Paralegals', value: '3' }, { label: 'Admins', value: '3' }]} />
+      <PageSection 
+        eyebrow="Team Management" 
+        title={`${role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Firm'} Team Directory`} 
+        description="Create and manage your team members with role-aware access and workload visibility." 
+        actions={<ActionLink href={`${viewBase}/new`} label={`Add ${role || 'Member'}`} />} 
+      />
+      <MetricGrid accent={accent} metrics={metrics} />
       <Panel title="Current Team" subtitle="Role, workload, and access status">
-        <DataTable
-          columns={[
-            { key: 'name', label: 'Member' },
-            { key: 'role', label: 'Role' },
-            { key: 'practice', label: 'Practice Area' },
-            { key: 'cases', label: 'Cases' },
-            { key: 'status', label: 'Status' },
-          ]}
-          rows={[
-            { name: 'Ritika Iyer', role: 'Advocate', practice: 'Criminal', cases: '18', status: 'Active', viewHref: viewBase ? `${viewBase}/1` : undefined },
-            { name: 'S. Nair', role: 'Paralegal', practice: 'Litigation Support', cases: '11', status: 'Active', viewHref: viewBase ? `${viewBase}/2` : undefined },
-            { name: 'A. Menon', role: 'Admin', practice: 'Operations', cases: 'All access', status: 'Active', viewHref: viewBase ? `${viewBase}/3` : undefined },
-          ]}
-        />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-20">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <p className="mt-4 text-sm text-gray-400">Loading team data...</p>
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center text-red-500 bg-red-50 rounded-2xl border border-red-100">
+            <p className="text-sm font-medium">Error: {error}</p>
+          </div>
+        ) : (
+          <DataTable
+            columns={[
+              { key: 'name', label: 'Member' },
+              { key: 'role', label: 'Role' },
+              { key: 'practice', label: 'Practice Area' },
+              { key: 'cases', label: 'Cases' },
+              { key: 'status', label: 'Status' },
+            ]}
+            rows={rows}
+          />
+        )}
       </Panel>
+    </div>
+  );
+}
+
+export function UserDetailPage({ accent, userId }: AccentProps & { userId: string }) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setLoading(true);
+        const response = await customFetch(API.USERS.DETAIL(userId));
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.detail || 'Failed to fetch user details');
+        
+        setUser(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, [userId]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setEditData({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        phone_number: user.phone_number,
+        address_line_1: user.address_line_1,
+        address_line_2: user.address_line_2,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        postal_code: user.postal_code,
+        date_of_birth: user.date_of_birth,
+        gender: user.gender,
+        aadhar_number: user.aadhar_number,
+        pan_number: user.pan_number,
+        bar_council_registration: user.bar_council_registration,
+        bar_council_state: user.bar_council_state,
+        is_active: user.is_active,
+      });
+    }
+  }, [user, isEditing]);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    try {
+      const response = await customFetch(API.USERS.DETAIL(userId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || data.detail || 'Failed to update profile');
+      }
+
+      const updatedUser = await response.json();
+      setUser(updatedUser);
+      setIsEditing(false);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateField = (key: string, value: any) => setEditData((p: any) => ({ ...p, [key]: value }));
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <p className="mt-4 text-sm text-gray-400">Loading user profile...</p>
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className="p-12 text-center text-red-500 bg-red-50 rounded-2xl border border-red-100">
+        <p className="text-sm font-medium">Error: {error || 'User not found'}</p>
+      </div>
+    );
+  }
+
+  const profileItems = [
+    { label: 'Full Name', value: `${user.first_name} ${user.last_name}` },
+    { label: 'Username', value: user.username },
+    { label: 'Email', value: user.email },
+    { label: 'Phone', value: user.phone_number },
+    { label: 'User Type', value: <Badge label={user.user_type} tone="info" /> },
+    { label: 'Firm Name', value: user.firm_name || 'N/A' },
+  ];
+
+  const addressItems = [
+    { label: 'Address Line 1', value: user.address_line_1 || '--' },
+    { label: 'Address Line 2', value: user.address_line_2 || '--' },
+    { label: 'City', value: user.city || '--' },
+    { label: 'State', value: user.state || '--' },
+    { label: 'Country', value: user.country || '--' },
+    { label: 'Postal Code', value: user.postal_code || '--' },
+  ];
+
+  const verificationItems = [
+    { label: 'Email Verified', value: <Badge label={user.is_email_verified ? 'Verified' : 'Pending'} tone={user.is_email_verified ? 'success' : 'warning'} /> },
+    { label: 'Phone Verified', value: <Badge label={user.is_phone_verified ? 'Verified' : 'Pending'} tone={user.is_phone_verified ? 'success' : 'warning'} /> },
+    { label: 'Document Verified', value: <Badge label={user.is_document_verified ? 'Verified' : 'Pending'} tone={user.is_document_verified ? 'success' : 'warning'} /> },
+    { label: 'Account Status', value: <Badge label={user.is_active ? 'Active' : 'Inactive'} tone={user.is_active ? 'success' : 'danger'} /> },
+  ];
+
+  const legalItems = user.user_type === 'advocate' ? [
+    { label: 'Bar Council Reg', value: user.bar_council_registration || '--' },
+    { label: 'Bar Council State', value: user.bar_council_state || '--' },
+    { label: 'PAN Number', value: user.pan_number || '--' },
+    { label: 'Aadhar Number', value: user.aadhar_number || '--' },
+  ] : [];
+
+  return (
+    <div className="space-y-8">
+      <PageSection 
+        eyebrow="User Profile" 
+        title={`${user.first_name} ${user.last_name}`} 
+        description={`Full breakdown of account details, firm association, and verified credentials for ${user.user_type}.`} 
+        actions={
+          isEditing ? (
+             <div className="flex gap-2">
+                <button 
+                  onClick={handleUpdate} 
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0e2340] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a3a5c] disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Changes
+                </button>
+                <button 
+                  onClick={() => setIsEditing(false)} 
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4" /> Cancel
+                </button>
+             </div>
+          ) : (
+            <button 
+              onClick={() => setIsEditing(true)} 
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <PenTool className="h-4 w-4" /> Edit Profile
+            </button>
+          )
+        }
+      />
+
+      <SplitPanels
+        left={
+          <div className="space-y-6">
+            <Panel title="Identity & Contact" subtitle="Basic personal and role information.">
+              {isEditing ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">First Name</label>
+                    <input value={editData.first_name} onChange={e => updateField('first_name', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Last Name</label>
+                    <input value={editData.last_name} onChange={e => updateField('last_name', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Phone Number</label>
+                    <input value={editData.phone_number} onChange={e => updateField('phone_number', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                   <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Gender</label>
+                    <select value={editData.gender} onChange={e => updateField('gender', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none">
+                      <option value="">Select Gender</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Date of Birth</label>
+                    <input type="date" value={editData.date_of_birth || ''} onChange={e => updateField('date_of_birth', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                </div>
+              ) : (
+                <DetailList items={profileItems} columns={2} />
+              )}
+            </Panel>
+            
+            <Panel title="Location Details" subtitle="Full residential or office address.">
+              {isEditing ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Address Line 1</label>
+                    <input value={editData.address_line_1} onChange={e => updateField('address_line_1', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Address Line 2</label>
+                    <input value={editData.address_line_2} onChange={e => updateField('address_line_2', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">City</label>
+                    <input value={editData.city} onChange={e => updateField('city', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">State</label>
+                    <input value={editData.state} onChange={e => updateField('state', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Postal Code</label>
+                    <input value={editData.postal_code} onChange={e => updateField('postal_code', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                  </div>
+                </div>
+              ) : (
+                <DetailList items={addressItems} columns={3} />
+              )}
+            </Panel>
+
+            {(legalItems.length > 0 || isEditing) && user.user_type === 'advocate' && (
+              <Panel title="Legal Credentials" subtitle="Professional and tax identity records.">
+                {isEditing ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Bar Council Reg</label>
+                      <input value={editData.bar_council_registration} onChange={e => updateField('bar_council_registration', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Bar Council State</label>
+                      <input value={editData.bar_council_state} onChange={e => updateField('bar_council_state', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">PAN Number</label>
+                      <input value={editData.pan_number} onChange={e => updateField('pan_number', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Aadhar Number</label>
+                      <input value={editData.aadhar_number} onChange={e => updateField('aadhar_number', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none" />
+                    </div>
+                  </div>
+                ) : (
+                  <DetailList items={legalItems} columns={2} />
+                )}
+              </Panel>
+            )}
+            
+            <Panel title="Firm History" subtitle="Current and past law firm associations.">
+              <DataTable
+                columns={[
+                  { key: 'firm_name', label: 'Firm' },
+                  { key: 'user_type', label: 'Role' },
+                  { key: 'is_active', label: 'Active' },
+                  { key: 'branch', label: 'Branch' },
+                ]}
+                rows={user.available_firms?.map((f: any) => ({
+                  firm_name: f.firm_name,
+                  user_type: f.user_type,
+                  is_active: f.is_active ? 'Yes' : 'No',
+                  branch: f.branch || 'Main',
+                })) || []}
+              />
+            </Panel>
+          </div>
+        }
+        right={
+          <div className="space-y-6">
+            <Panel title="Verification Status" subtitle="System-level trust indicators.">
+              {isEditing ? (
+                 <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Account Active</span>
+                      <button 
+                        onClick={() => updateField('is_active', !editData.is_active)}
+                        className={classNames(
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none",
+                          editData.is_active ? "bg-[#0e2340]" : "bg-gray-200"
+                        )}
+                      >
+                        <span className={classNames(
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          editData.is_active ? "translate-x-5" : "translate-x-0"
+                        )} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">Deactivating an account will prevent the user from logging in until reactivated.</p>
+                 </div>
+              ) : (
+                <DetailList items={verificationItems} columns={2} />
+              )}
+            </Panel>
+            
+            <Panel title="System Metadata" subtitle="Audit trail and security info.">
+              <div className="space-y-3">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Account Created</span>
+                  <span className="text-gray-600 font-bold">{new Date(user.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Last Updated</span>
+                  <span className="text-gray-600 font-bold">{new Date(user.updated_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Password Set</span>
+                  <span className="text-gray-600 font-bold">{user.password_set ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
+            </Panel>
+            
+            <InfoAside
+              accent={accent}
+              title="Profile Integrity"
+              items={[
+                'Verify all credentials before document assignment.',
+                'Role-specific permissions are synced globally.',
+                'Audit logs capture all profile modifications.'
+              ]}
+            />
+            {error && <p className="text-xs font-semibold text-red-500 bg-red-50 p-3 rounded-lg border border-red-100">{error}</p>}
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -675,41 +1065,231 @@ export function TeamMemberFormPage({
   detail,
   title,
   description,
-}: AccentProps & { detail?: boolean; title?: string; description?: string }) {
+  fixedRole,
+}: AccentProps & { detail?: boolean; title?: string; description?: string; fixedRole?: string }) {
+  const router = useRouter();
+  const [formData, setFormData] = useState<any>({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: '',
+    password: '',
+    user_type: fixedRole || 'advocate',
+    practice_area: '',
+    firm: '',
+  });
+  const [firms, setFirms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (formData.user_type === 'super_admin' || formData.user_type === 'partner_manager') {
+      customFetch(API.FIRMS.LIST)
+        .then(res => res.json())
+        .then(data => {
+          if (data.results) setFirms(data.results);
+          else if (Array.isArray(data)) setFirms(data);
+        })
+        .catch(err => console.error('Failed to fetch firms:', err));
+    }
+  }, [formData.user_type]);
+
+  const roles = [
+    { label: 'Admin', value: 'admin' },
+    { label: 'Advocate', value: 'advocate' },
+    { label: 'Paralegal', value: 'paralegal' },
+    { label: 'Client', value: 'client' },
+    { label: 'Partner Manager', value: 'partner_manager' },
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await customFetch(API.USERS.ADD_USER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || 'Failed to create user');
+      }
+
+      router.back();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const update = (key: string, value: string) => setFormData((p: any) => ({ ...p, [key]: value }));
+
   return (
     <div className="space-y-8">
       <PageSection
         eyebrow="Team"
         title={title ?? (detail ? 'Team Member Profile' : 'Add Team Member')}
-        description={description ?? (detail ? 'Role scope, assignment load, and access visibility for an individual user.' : 'Create a new admin, advocate, or paralegal using the same role structure as the current exam app.')}
+        description={description ?? (detail ? 'Role scope, assignment load, and access visibility for an individual user.' : 'Create a new team member with controlled access.')}
       />
-      <SplitPanels
-        left={<Panel title={detail ? 'Member Details' : 'Member Form'} subtitle="Core identity, role, reporting, and practice area."><FormGrid fields={teamFields} /></Panel>}
-        right={<InfoAside accent={accent} title="Role Notes" items={['Member type is mandatory in the form.', 'Deletion and suspension remain controlled by firm leadership.', 'Future multi-center mapping is reserved for a later phase.']} />}
-      />
+      <form onSubmit={handleSubmit}>
+        <SplitPanels
+          left={
+            <Panel title={detail ? 'Member Details' : 'Member Form'} subtitle="Core identity, role, and contact information.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">First Name</label>
+                  <input value={formData.first_name} onChange={e => update('first_name', e.target.value)} required placeholder="John" className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Last Name</label>
+                  <input value={formData.last_name} onChange={e => update('last_name', e.target.value)} required placeholder="Doe" className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Email Address</label>
+                  <input type="email" value={formData.email} onChange={e => update('email', e.target.value)} required placeholder="john@example.com" className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Phone Number</label>
+                  <input value={formData.phone_number} onChange={e => update('phone_number', e.target.value)} required placeholder="+91 9876543210" className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400" />
+                </div>
+                {!fixedRole && (
+                   <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">User Role</label>
+                    <select value={formData.user_type} onChange={e => update('user_type', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none">
+                      {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Practice Area</label>
+                  <input value={formData.practice_area} onChange={e => update('practice_area', e.target.value)} placeholder="e.g. Criminal Law" className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400" />
+                </div>
+                {['super_admin', 'partner_manager'].includes(formData.user_type) && (
+                  <div className="md:col-span-2">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
+                      Associated Law Firm {formData.user_type === 'super_admin' && <span className="text-red-500">*</span>}
+                    </label>
+                    <select 
+                      value={formData.firm} 
+                      onChange={e => update('firm', e.target.value)} 
+                      required={formData.user_type === 'super_admin'}
+                      className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none"
+                    >
+                      <option value="">Select a firm...</option>
+                      {firms.map((f: any) => (
+                        <option key={f.id} value={f.id}>{f.firm_name}</option>
+                      ))}
+                    </select>
+                    <p className="mt-1.5 text-xs text-gray-400">
+                      {formData.user_type === 'super_admin' 
+                        ? 'A Super Admin must be linked to a law firm.' 
+                        : 'Link this partner manager to a specific law firm (optional).'}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Temporary Password</label>
+                  <input type="password" value={formData.password} onChange={e => update('password', e.target.value)} required placeholder="••••••••" className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-gray-700 outline-none placeholder:text-gray-400" />
+                </div>
+              </div>
+              {error && <p className="mt-4 text-xs font-semibold text-red-500">{error}</p>}
+            </Panel>
+          }
+          right={
+            <div className="space-y-6">
+              <InfoAside accent={accent} title="Creation Notes" items={['New users will receive a verification email.', 'They must use the temporary password for first login.', 'Access scope is limited by the selected role.']} />
+              <Panel title="Actions" subtitle="Onboard team member">
+                 <div className="flex flex-col gap-3">
+                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#0e2340] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a3a5c] disabled:opacity-50">
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      Save Team Member
+                    </button>
+                    <button type="button" onClick={() => router.back()} className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                      <X className="h-4 w-4" /> Cancel
+                    </button>
+                 </div>
+              </Panel>
+            </div>
+          }
+        />
+      </form>
     </div>
   );
 }
 
-export function ClientsPage({ accent, viewBase }: AccentProps & { viewBase?: string }) {
+export function ClientsPage({ accent, viewBase, role }: AccentProps & { viewBase?: string; role?: string }) {
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setLoading(true);
+        const response = await customFetch(API.USERS.LIST);
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.detail || 'Failed to fetch clients');
+        
+        let results = data.results || data;
+        if (role) {
+          results = results.filter((u: any) => u.user_type === role);
+        }
+        setClients(results);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClients();
+  }, [role]);
+
+  const rows = clients.map((u, i) => ({
+    client: `${u.first_name} ${u.last_name}`,
+    matter: 'N/A', // Linking to real matters would require another API call or field
+    phone: u.phone_number,
+    email: u.email,
+    status: u.is_active ? 'Active' : 'Inactive',
+    viewHref: viewBase ? `${viewBase}/${u.id}` : undefined,
+  }));
+
   return (
     <div className="space-y-8">
-      <PageSection eyebrow="Client Management" title="Client Directory" description="Register, update, and review client records tied to firm matters." actions={<ActionLink href="/super-admin/clients/new" label="Register Client" />} />
-      <MetricGrid accent={accent} metrics={[{ label: 'Total Clients', value: '88' }, { label: 'New This Month', value: '11' }, { label: 'Active Matters', value: '56' }, { label: 'Pending KYC', value: '3' }]} />
+      <PageSection 
+        eyebrow="Client Management" 
+        title="Client Directory" 
+        description="Register and manage client records tied to firm matters." 
+        actions={<ActionLink href={`${viewBase}/new`} label="Register Client" />} 
+      />
+      <MetricGrid accent={accent} metrics={[{ label: 'Total Clients', value: clients.length.toString() }, { label: 'Active', value: clients.filter(c => c.is_active).length.toString() }, { label: 'Pending Docs', value: '0' }, { label: 'New This Month', value: '0' }]} />
       <Panel title="Client Register" subtitle="Current clients, lead matters, and contact status." actions={<SearchBar placeholder="Search clients, phone, or matter..." />}>
-        <DataTable
-          columns={[
-            { key: 'client', label: 'Client' },
-            { key: 'matter', label: 'Lead Matter' },
-            { key: 'phone', label: 'Phone' },
-            { key: 'email', label: 'Email' },
-            { key: 'status', label: 'Status' },
-          ]}
-          rows={[
-            { client: 'Amit Mehta', matter: 'State vs Mehta', phone: '+91 99XXXXXX12', email: 'amit@example.com', status: 'Active', viewHref: viewBase ? `${viewBase}/1` : undefined },
-            { client: 'Nisha Kapoor', matter: 'Property Appeal', phone: '+91 98XXXXXX88', email: 'nisha@example.com', status: 'Pending docs', viewHref: viewBase ? `${viewBase}/2` : undefined },
-          ]}
-        />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-20">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <p className="mt-4 text-sm text-gray-400">Loading clients...</p>
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center text-red-500 bg-red-50 rounded-2xl border border-red-100">
+            <p className="text-sm font-medium">Error: {error}</p>
+          </div>
+        ) : (
+          <DataTable
+            columns={[
+              { key: 'client', label: 'Client' },
+              { key: 'matter', label: 'Lead Matter' },
+              { key: 'phone', label: 'Phone' },
+              { key: 'email', label: 'Email' },
+              { key: 'status', label: 'Status' },
+            ]}
+            rows={rows}
+          />
+        )}
       </Panel>
     </div>
   );
@@ -892,6 +1472,291 @@ export function CalendarPage({ accent, roleTitle }: AccentProps & { roleTitle: s
         right={<InfoAside accent={accent} title="Reminder Rules" items={['7-day, 3-day, 1-day, same-day, and overdue alerts.', 'Escalation to admin reserved for critical missed deadlines.', 'eCourts sync remains supportive only; local records stay source of truth.']} />}
       />
     </div>
+  );
+}
+
+export function ChangePasswordPanel({ accent }: AccentProps) {
+  const [formData, setFormData] = useState({
+    old_password: '',
+    new_password: '',
+    new_password_confirm: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await customFetch(API.USERS.CHANGE_PASSWORD, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || (typeof data === 'object' ? Object.values(data)[0] : 'Failed to change password'));
+      }
+
+      setSuccess('Password changed successfully');
+      setFormData({ old_password: '', new_password: '', new_password_confirm: '' });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Panel title="Change Password" subtitle="Security update for your login credentials.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Old Password</label>
+          <input 
+            type="password" 
+            value={formData.old_password} 
+            onChange={e => setFormData({ ...formData, old_password: e.target.value })}
+            required 
+            autoComplete="current-password"
+            className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">New Password</label>
+            <input 
+              type="password" 
+              value={formData.new_password} 
+              onChange={e => setFormData({ ...formData, new_password: e.target.value })}
+              required 
+              autoComplete="new-password"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Confirm New Password</label>
+            <input 
+              type="password" 
+              value={formData.new_password_confirm} 
+              onChange={e => setFormData({ ...formData, new_password_confirm: e.target.value })}
+              required 
+              autoComplete="new-password"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+        </div>
+        {error && <p className="text-xs font-semibold text-red-500 bg-red-50 p-3 rounded-lg border border-red-100">{error}</p>}
+        {success && <p className="text-xs font-semibold text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">{success}</p>}
+        <div className="flex justify-end pt-2">
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl bg-[#0e2340] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-all shadow-sm disabled:opacity-50"
+            style={{ backgroundColor: accent }}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {loading ? 'Updating...' : 'Update Password'}
+          </button>
+        </div>
+      </form>
+    </Panel>
+  );
+}
+
+export function ProfileInformationPanel({ accent }: AccentProps) {
+  const [formData, setFormData] = useState({
+    first_name: '',
+    date_of_birth: '',
+    aadhar_number: '',
+    pan_number: '',
+    address_line_1: '',
+    city: '',
+    state: '',
+    country: 'India',
+    postal_code: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const details = localStorage.getItem('user_details');
+    if (details) {
+      try {
+        const user = JSON.parse(details);
+        setUserId(user.id);
+        setFormData(prev => ({
+          ...prev,
+          first_name: user.first_name || '',
+          date_of_birth: user.date_of_birth || '',
+          aadhar_number: user.aadhar_number || '',
+          pan_number: user.pan_number || '',
+          address_line_1: user.address_line_1 || '',
+          city: user.city || '',
+          state: user.state || '',
+          country: user.country || 'India',
+          postal_code: user.postal_code || '',
+        }));
+      } catch (e) {
+        console.error('Error parsing user_details:', e);
+      }
+    }
+    setFetching(false);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) {
+      setError('User session not found. Please log in again.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await customFetch(API.USERS.DETAIL(userId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || (typeof data === 'object' ? Object.values(data)[0] : 'Failed to update profile'));
+      }
+
+      setSuccess('Profile updated successfully');
+      localStorage.setItem('user_details', JSON.stringify(data));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateField = (k: string, v: string) => {
+    setFormData(p => ({ ...p, [k]: v }));
+    setError('');
+    setSuccess('');
+  };
+
+  if (fetching) return <div className="p-8 text-center text-sm text-gray-400 font-medium">Loading profile...</div>;
+
+  return (
+    <Panel title="Profile Information" subtitle="Update your personal details and identity information.">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">First Name</label>
+            <input 
+              type="text" 
+              value={formData.first_name} 
+              onChange={e => updateField('first_name', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Date of Birth</label>
+            <input 
+              type="date" 
+              value={formData.date_of_birth} 
+              onChange={e => updateField('date_of_birth', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Aadhar Number</label>
+            <input 
+              type="text" 
+              value={formData.aadhar_number} 
+              onChange={e => updateField('aadhar_number', e.target.value)}
+              maxLength={12}
+              placeholder="12-digit Aadhar"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">PAN Number</label>
+            <input 
+              type="text" 
+              value={formData.pan_number} 
+              onChange={e => updateField('pan_number', e.target.value)}
+              maxLength={10}
+              placeholder="ABCDE1234F"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Address Line 1</label>
+            <input 
+              type="text" 
+              value={formData.address_line_1} 
+              onChange={e => updateField('address_line_1', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">City</label>
+            <input 
+              type="text" 
+              value={formData.city} 
+              onChange={e => updateField('city', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">State</label>
+            <input 
+              type="text" 
+              value={formData.state} 
+              onChange={e => updateField('state', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Country</label>
+            <input 
+              type="text" 
+              value={formData.country} 
+              onChange={e => updateField('country', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Postal Code</label>
+            <input 
+              type="text" 
+              value={formData.postal_code} 
+              onChange={e => updateField('postal_code', e.target.value)}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-[#f7f8fa] px-3.5 text-sm text-black font-semibold outline-none" 
+            />
+          </div>
+        </div>
+
+        {error && <p className="text-xs font-semibold text-red-500 bg-red-50 p-3 rounded-lg border border-red-100">{error}</p>}
+        {success && <p className="text-xs font-semibold text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">{success}</p>}
+
+        <div className="flex justify-end pt-2">
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl bg-[#0e2340] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-all shadow-sm disabled:opacity-50"
+            style={{ backgroundColor: accent }}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </Panel>
   );
 }
 

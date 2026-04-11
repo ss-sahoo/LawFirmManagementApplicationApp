@@ -163,7 +163,7 @@ export default function CreateFirmForm() {
                 <select
                   value={form[key]}
                   onChange={(e) => set(key, e.target.value)}
-                  className={`h-10 px-3.5 rounded-xl border bg-[#f7f8fa] text-sm text-gray-700 outline-none focus:border-[#0e2340]/40 focus:ring-2 focus:ring-[#0e2340]/8 transition-all ${
+                  className={`h-10 px-3.5 rounded-xl border bg-[#f7f8fa] text-sm text-black font-semibold placeholder:text-gray-400 outline-none focus:border-[#0e2340]/40 focus:ring-2 focus:ring-[#0e2340]/8 transition-all ${
                     fieldErrors[key] ? 'border-red-300 bg-red-50/50' : 'border-gray-200'
                   }`}
                 >

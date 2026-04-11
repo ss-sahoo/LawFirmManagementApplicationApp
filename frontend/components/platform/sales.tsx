@@ -133,7 +133,7 @@ export default function SalesPersonPage() {
                   value={(form as any)[k]}
                   onChange={e => set(k, e.target.value)}
                   placeholder={ph}
-                  className="h-10 px-3.5 rounded-xl border border-gray-200 bg-[#f7f8fa] text-sm text-gray-700 placeholder:text-gray-300 outline-none focus:border-[#6C5CE7]/50 focus:ring-2 focus:ring-[#6C5CE7]/10 transition-all"
+                  className="h-10 px-3.5 rounded-xl border border-gray-200 bg-[#f7f8fa] text-sm text-black font-semibold placeholder:text-gray-300 outline-none focus:border-[#6C5CE7]/50 focus:ring-2 focus:ring-[#6C5CE7]/10 transition-all"
                 />
               </div>
             ))}
@@ -155,7 +155,7 @@ export default function SalesPersonPage() {
           <p className="text-sm font-bold text-[#0e2340]">{users.length} Sales Persons</p>
           <div className="flex items-center gap-2 bg-[#f7f8fa] border border-gray-100 rounded-xl px-3 py-2 w-56">
             <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <input value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} placeholder="Search by name / area…" className="bg-transparent text-sm text-gray-600 placeholder:text-gray-400 outline-none w-full" />
+            <input value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} placeholder="Search by name / area…" className="bg-transparent text-sm text-black font-semibold placeholder:text-gray-400 outline-none w-full" />
           </div>
         </div>
         <div className="overflow-x-auto">

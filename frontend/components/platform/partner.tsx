@@ -17,9 +17,9 @@ interface PartnerManager {
 }
 
 const mock: PartnerManager[] = [
-  { id: 1, name: 'Rohit Verma',    email: 'rohit@antlegal.com',   phone: '+91 98111 00001', region: 'North India', firmCount: 8,  status: 'Active',    joinedAt: '2 Feb 2024'  },
-  { id: 2, name: 'Priya Nair',     email: 'priya@antlegal.com',   phone: '+91 98222 00002', region: 'South India', firmCount: 12, status: 'Active',    joinedAt: '15 Mar 2024' },
-  { id: 3, name: 'Aman Siddiqui',  email: 'aman@antlegal.com',    phone: '+91 98333 00003', region: 'West India',  firmCount: 5,  status: 'Suspended', joinedAt: '1 Apr 2024'  },
+  { id: 1, name: 'Rohit Verma', email: 'rohit@antlegal.com', phone: '+91 98111 00001', region: 'North India', firmCount: 8, status: 'Active', joinedAt: '2 Feb 2024' },
+  { id: 2, name: 'Priya Nair', email: 'priya@antlegal.com', phone: '+91 98222 00002', region: 'South India', firmCount: 12, status: 'Active', joinedAt: '15 Mar 2024' },
+  { id: 3, name: 'Aman Siddiqui', email: 'aman@antlegal.com', phone: '+91 98333 00003', region: 'West India', firmCount: 5, status: 'Suspended', joinedAt: '1 Apr 2024' },
 ];
 
 const emptyForm = { name: '', email: '', phone: '', region: '', username: '', password: '' };
@@ -61,12 +61,12 @@ export default function PartnerManagerPage() {
   const remove = (id: number) => setUsers(p => p.filter(u => u.id !== id));
 
   const fields = [
-    { k: 'name',     l: 'Full Name',  ph: 'Partner Manager name' },
-    { k: 'email',    l: 'Email',      ph: 'manager@antlegal.com', type: 'email' },
-    { k: 'phone',    l: 'Phone',      ph: '+91 98765 43210', type: 'tel' },
-    { k: 'region',   l: 'Region',     ph: 'e.g. North India' },
-    { k: 'username', l: 'Username',   ph: 'login username' },
-    { k: 'password', l: 'Password',   ph: '••••••••', type: 'password' },
+    { k: 'name', l: 'Full Name', ph: 'Partner Manager name' },
+    { k: 'email', l: 'Email', ph: 'manager@antlegal.com', type: 'email' },
+    { k: 'phone', l: 'Phone', ph: '+91 98765 43210', type: 'tel' },
+    { k: 'region', l: 'Region', ph: 'e.g. North India' },
+    { k: 'username', l: 'Username', ph: 'login username' },
+    { k: 'password', l: 'Password', ph: '••••••••', type: 'password' },
   ];
 
   return (
@@ -89,9 +89,9 @@ export default function PartnerManagerPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total Managers', value: users.length,                              color: 'bg-[#6C5CE7]' },
-          { label: 'Active',         value: users.filter(u => u.status === 'Active').length,    color: 'bg-emerald-500' },
-          { label: 'Firms Covered',  value: users.reduce((a, u) => a + u.firmCount, 0), color: 'bg-blue-500' },
+          { label: 'Total Managers', value: users.length, color: 'bg-[#6C5CE7]' },
+          { label: 'Active', value: users.filter(u => u.status === 'Active').length, color: 'bg-emerald-500' },
+          { label: 'Firms Covered', value: users.reduce((a, u) => a + u.firmCount, 0), color: 'bg-blue-500' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className={`w-9 h-9 ${color} rounded-xl flex items-center justify-center mb-3 shadow-sm`}>
@@ -124,7 +124,7 @@ export default function PartnerManagerPage() {
                   value={(form as any)[k]}
                   onChange={e => set(k, e.target.value)}
                   placeholder={ph}
-                  className="h-10 px-3.5 rounded-xl border border-gray-200 bg-[#f7f8fa] text-sm text-gray-700 placeholder:text-gray-300 outline-none focus:border-[#6C5CE7]/50 focus:ring-2 focus:ring-[#6C5CE7]/10 transition-all"
+                  className="h-10 px-3.5 rounded-xl border border-gray-200 bg-[#f7f8fa] text-sm text-black font-semibold placeholder:text-gray-300 outline-none focus:border-[#6C5CE7]/50 focus:ring-2 focus:ring-[#6C5CE7]/10 transition-all"
                 />
               </div>
             ))}
@@ -146,7 +146,7 @@ export default function PartnerManagerPage() {
           <p className="text-sm font-bold text-[#0e2340]">{users.length} Partner Managers</p>
           <div className="flex items-center gap-2 bg-[#f7f8fa] border border-gray-100 rounded-xl px-3 py-2 w-56">
             <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <input value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} placeholder="Search managers…" className="bg-transparent text-sm text-gray-600 placeholder:text-gray-400 outline-none w-full" />
+            <input value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} placeholder="Search managers…" className="bg-transparent text-sm text-black font-semibold placeholder:text-gray-400 outline-none w-full" />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -177,9 +177,8 @@ export default function PartnerManagerPage() {
                     <span className="text-sm font-bold text-[#6C5CE7] bg-[#6C5CE7]/8 px-2.5 py-1 rounded-full">{u.firmCount}</span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                      u.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-500 border border-red-100'
-                    }`}>
+                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${u.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-500 border border-red-100'
+                      }`}>
                       {u.status === 'Active' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                       {u.status}
                     </span>

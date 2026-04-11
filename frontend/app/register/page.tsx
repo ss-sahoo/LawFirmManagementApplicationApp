@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,10 +14,26 @@ export default function RegisterWizard() {
 
   const [registerType, setRegisterType] = useState<'client' | 'super_admin'>('client');
   const [currentStep, setCurrentStep] = useState(0);
+  const [trialEnabled, setTrialEnabled] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    async function fetchConfig() {
+      try {
+        const response = await customFetch(API.CONFIG.GET);
+        if (response.ok) {
+          const data = await response.json();
+          setTrialEnabled(data.is_free_trial_enabled);
+        }
+      } catch (e) {
+        console.error("Failed to fetch trial config:", e);
+      }
+    }
+    fetchConfig();
+  }, []);
 
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', email: '', phone_number: '',
@@ -111,7 +127,7 @@ export default function RegisterWizard() {
           <h2 className="text-3xl font-extrabold text-[#0e2340] mb-2">Create your account</h2>
           <p className="text-gray-500 font-medium mb-8">Select how you want to use the platform.</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={`grid grid-cols-1 ${trialEnabled ? 'sm:grid-cols-2' : ''} gap-4`}>
             <button
               type="button"
               onClick={() => setRegisterType('client')}
@@ -126,20 +142,22 @@ export default function RegisterWizard() {
               <h3 className={`text-lg font-bold ${registerType === 'client' ? 'text-[#0e2340]' : 'text-gray-900'}`}>Client Account</h3>
               <p className="text-sm text-gray-500 mt-2 leading-relaxed">Book consultations, manage cases, and securely communicate with legal teams.</p>
             </button>
-            <button
-              type="button"
-              onClick={() => setRegisterType('super_admin')}
-              className={`p-6 rounded-2xl border-2 text-left transition-all ${registerType === 'super_admin'
-                ? 'border-[#0e2340] bg-[#0e2340]/5'
-                : 'border-gray-200 hover:border-gray-300'
-                }`}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${registerType === 'super_admin' ? 'bg-[#c9a96e] text-white' : 'bg-gray-100 text-gray-500'}`}>
-                <Building className="w-6 h-6" />
-              </div>
-              <h3 className={`text-lg font-bold ${registerType === 'super_admin' ? 'text-[#0e2340]' : 'text-gray-900'}`}>Create your Lawfirm</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed">Create a workspace to manage lawyers, billing, documents, and client timelines natively.</p>
-            </button>
+            {trialEnabled && (
+              <button
+                type="button"
+                onClick={() => setRegisterType('super_admin')}
+                className={`p-6 rounded-2xl border-2 text-left transition-all ${registerType === 'super_admin'
+                  ? 'border-[#0e2340] bg-[#0e2340]/5'
+                  : 'border-gray-200 hover:border-gray-300'
+                  }`}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${registerType === 'super_admin' ? 'bg-[#c9a96e] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                  <Building className="w-6 h-6" />
+                </div>
+                <h3 className={`text-lg font-bold ${registerType === 'super_admin' ? 'text-[#0e2340]' : 'text-gray-900'}`}>Create your Lawfirm</h3>
+                <p className="text-sm text-gray-500 mt-2 leading-relaxed">Create a workspace to manage lawyers, billing, documents, and client timelines natively.</p>
+              </button>
+            )}
           </div>
         </motion.div>
       );
@@ -460,7 +478,7 @@ export default function RegisterWizard() {
                         Processing...
                       </div>
                     ) : currentStep === stepsList.length - 1 ? (
-                      <>Generate Perimeter <KeyRound className="w-4 h-4" /></>
+                      <>Continue <KeyRound className="w-4 h-4" /></>
                     ) : (
                       <>Continue <ChevronRight className="w-4 h-4" /></>
                     )}
