@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "cases",
     "clients",
     "tasks",
+    "subscriptions",
 ]
 
 MIDDLEWARE = [

@@ -186,7 +186,7 @@ class UserInvitation(models.Model):
     email = models.EmailField()
     phone_number = models.CharField(max_length=17)
     user_type = models.CharField(max_length=20, choices=CustomUser.USER_TYPE_CHOICES)
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='user_invitations')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='user_invitations', null=True, blank=True)
     
     status = models.CharField(
         max_length=20, 
@@ -243,7 +243,7 @@ class UserFirmRole(models.Model):
     """Mapping of users to law firms with specific roles"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='firm_memberships')
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='firm_members')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='firm_members', null=True, blank=True)
     branch = models.ForeignKey('firms.Branch', on_delete=models.SET_NULL, null=True, blank=True, related_name='branch_members')
     user_type = models.CharField(max_length=20, choices=CustomUser.USER_TYPE_CHOICES)
     is_active = models.BooleanField(default=True)

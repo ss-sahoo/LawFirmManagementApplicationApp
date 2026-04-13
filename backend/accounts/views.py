@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions, serializers
+from rest_framework import viewsets, status, permissions, serializers, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -9,7 +9,7 @@ import random
 import string
 from datetime import timedelta
 import requests
-from django.db.models import F
+from django.db.models import F, Q
 
 
 from .models import CustomUser, LoginCredential, OTPVerification, UserInvitation, UserFirmRole, GlobalConfiguration, FirmJoinLink
@@ -106,6 +106,9 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['username', 'email', 'first_name', 'last_name', 'phone_number']
+    ordering_fields = ['created_at', 'id']
     
     def get_queryset(self):
         user = self.request.user
@@ -255,6 +258,60 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             )
         
         # ============================================================================
+        # NEW RESTRICTIONS (Super Admin & Branch Admin)
+        # ============================================================================
+        email = data.get('email')
+        existing_user = CustomUser.objects.filter(Q(email=email) | Q(username=email)).first()
+        
+        # 1. Super Admin Restriction: Can't be part of multiple firms
+        if user_type_to_add == 'super_admin':
+            if existing_user and existing_user.firm_memberships.exists():
+                return Response(
+                    {'error': 'A Super Admin (Firm Owner) cannot be added to another firm.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # 2. Prevent adding an existing Super Admin to any other firm
+        if existing_user and existing_user.user_type == 'super_admin' and existing_user.firm != firm:
+            return Response(
+                {'error': 'This user is a Super Admin of another firm and cannot join a different firm.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3. Branch Admin Restriction: Can't be in different branches
+        if user_type_to_add == 'admin' and data.get('branch_id'):
+            if existing_user:
+                # Check if already assigned to any branch
+                already_in_branch = UserFirmRole.objects.filter(
+                    user=existing_user, 
+                    branch__isnull=False
+                ).exists()
+                if already_in_branch:
+                    return Response(
+                        {'error': 'An Admin cannot be assigned to more than one branch.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        
+        # ============================================================================
+        # ADVOCATE REQUIRED WHEN ADMIN ADDS A CLIENT
+        # ============================================================================
+        assigned_advocate_id = data.get('assigned_advocate_id')
+        if user_type_to_add == 'client' and user.user_type in ['admin', 'super_admin']:
+            if not assigned_advocate_id:
+                return Response(
+                    {'error': 'You must assign an advocate when registering a client (assigned_advocate_id is required).'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Validate advocate exists in the same firm
+            try:
+                advocate = CustomUser.objects.get(id=assigned_advocate_id, user_type='advocate', firm=firm)
+            except CustomUser.DoesNotExist:
+                return Response(
+                    {'error': 'Invalid advocate. The advocate must belong to your firm.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # ============================================================================
         # CREATE OR LINK USER
         # ============================================================================
         
@@ -331,6 +388,26 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             new_user.user_type = user_type_to_add
             new_user.save()
 
+        # ============================================================================
+        # AUTO-CREATE CLIENT RECORD (when admin adds a client)
+        # ============================================================================
+        if user_type_to_add == 'client':
+            from clients.models import Client as ClientRecord
+            advocate_obj = None
+            if assigned_advocate_id:
+                advocate_obj = CustomUser.objects.filter(id=assigned_advocate_id, user_type='advocate').first()
+            
+            ClientRecord.objects.create(
+                firm=firm,
+                first_name=new_user.first_name,
+                last_name=new_user.last_name,
+                email=new_user.email,
+                phone_number=new_user.phone_number or '',
+                brief_summary=data.get('brief_summary', ''),
+                assigned_advocate=advocate_obj,
+                user_account=new_user
+            )
+
         # Create invitation (only if new or new to this firm)
         invitation = UserInvitation.objects.create(
             invited_by=user,
@@ -344,10 +421,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         
         # Send notification
         join_link = f"https://antlegal.anthemgt.com/join?token={invitation.id}"
-        subject = f"Invite to join {firm.firm_name} - AntLegal"
+        firm_name = firm.firm_name if firm else "AntLegal Platform"
+        subject = f"Invite to join {firm_name} - AntLegal"
         message = (
             f"Hello {new_user.first_name or new_user.username},\n\n"
-            f"You have been invited to join {firm.firm_name} as a {membership.get_user_type_display()} on AntLegal.\n\n"
+            f"You have been invited to join {firm_name} as a {membership.get_user_type_display()} on AntLegal.\n\n"
             f"Please click the link below to set up your account and get started:\n"
             f"{join_link}\n\n"
             f"This link will expire in 7 days.\n\n"
@@ -359,7 +437,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         log_audit(
             user, 
             'create_user', 
-            f'Added {membership.get_user_type_display()}: {new_user.get_full_name()} to {firm.firm_name}'
+            f"Added {membership.get_user_type_display()}: {new_user.get_full_name()} to {firm_name}"
         )
         
         return Response({
@@ -744,14 +822,27 @@ class GlobalConfigurationViewSet(viewsets.ViewSet):
     """ViewSet for managing global configuration settings"""
     permission_classes = [permissions.IsAuthenticated]
     
-    @action(detail=False, methods=['get'], url_name='settings')
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='settings')
     def settings(self, request):
-        """Get current global settings (public endpoint for checking trial availability)"""
-        config = GlobalConfiguration.get_settings()
-        return Response({
-            'is_free_trial_enabled': config.is_free_trial_enabled,
-            'trial_period_days': config.trial_period_days
-        })
+        """Get current global settings (Restricted to Platform Owner)"""
+        if request.user.user_type != 'platform_owner':
+            return Response(
+                {'error': 'Only Platform Owner can view global settings'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            config = GlobalConfiguration.get_settings()
+            return Response({
+                'is_free_trial_enabled': config.is_free_trial_enabled,
+                'trial_period_days': config.trial_period_days
+            })
+        except Exception as e:
+            return Response({
+                'is_free_trial_enabled': True,
+                'trial_period_days': 15,
+                'note': 'Using fallback defaults'
+            }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['patch'], url_name='update_settings')
     def update_settings(self, request):

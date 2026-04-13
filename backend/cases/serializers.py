@@ -35,8 +35,12 @@ class CaseSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'firm', 'client', 'client_name', 'assigned_advocate', 'advocate_name',
             'assigned_paralegal', 'paralegal_name', 'case_title', 'case_number',
-            'case_type', 'description', 'status', 'priority', 'court_name',
-            'judge_name', 'filing_date', 'created_at', 'updated_at',
+            'case_type', 'description', 'status', 'category', 'priority', 'stage',
+            'case_summary', 'billing_type', 'estimated_value', 'total_fee', 'hearing_fee', 'additional_expenses',
+            'payment_terms', 'loe_notes',
+            'petitioner_name', 'respondent_name', 'opposing_counsel', 'court_name', 'court_no',
+            'judge_name', 'district', 'state', 'representing', 'cnr_number',
+            'filing_date', 'next_hearing_date', 'created_at', 'updated_at',
             'activities', 'hearings', 'drafts'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'firm', 'created_at', 'updated_at']

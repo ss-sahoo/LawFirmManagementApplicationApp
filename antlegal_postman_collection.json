@@ -1,292 +1,1748 @@
 {
-    "info": {
-        "name": "AntLegal Management System - Full Collection",
-        "description": "Complete API inventory for the Law Firm Management Application. Includes all CRUD operations and custom workflows.",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "item": [
-        {
-            "name": "1. Authentication",
-            "item": [
-                {
-                    "name": "Login (Username/Password)",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/auth/login_username_password/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "username": "admin@example.com",
-                                "password": "password123"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Request Phone OTP",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/auth/send_otp/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "phone_number": "919876543210"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Request Email OTP",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/auth/request_email_otp/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "email": "user@example.com"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Verify OTP & Get Token",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/auth/verify_otp/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "phone_number": "919876543210",
-                                "otp_code": "123456"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Set Initial Password",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/auth/set_password/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "phone_number": "919876543210",
-                                "password": "newpassword123",
-                                "password_confirm": "newpassword123"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Logout",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/auth/logout/"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "2. User & Firm Setup",
-            "item": [
-                {
-                    "name": "Dashboard Statistics",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/dashboard/"
-                    }
-                },
-                {
-                    "name": "List Firms",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/firms/"
-                    }
-                },
-                {
-                    "name": "Create Firm",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/firms/"
-                    }
-                },
-                {
-                    "name": "List Branches",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/branches/"
-                    }
-                },
-                {
-                    "name": "Add User to Firm",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/users/add_user/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "email": "newuser@firm.com",
-                                "user_type": "advocate",
-                                "first_name": "John"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Switch Active Firm",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/users/switch_firm/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "firm_id": "uuid-here"
-                            }
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "3. Case Management",
-            "item": [
-                {
-                    "name": "List All Cases",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/cases/"
-                    }
-                },
-                {
-                    "name": "Create Case",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/cases/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "case_title": "State vs Sharma",
-                                "case_number": "CN-2024-001",
-                                "client": "client-uuid"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "Case Detail",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/cases/:id/"
-                    }
-                },
-                {
-                    "name": "Update Case Status",
-                    "request": {
-                        "method": "PATCH",
-                        "url": "https://antlegal.anthemgt.com/api/cases/:id/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "status": "running"
-                            }
-                        }
-                    }
-                },
-                {
-                    "name": "List Case Hearings",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/hearings/"
-                    }
-                },
-                {
-                    "name": "Schedule Hearing",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/hearings/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "case": "case-uuid",
-                                "hearing_date": "2024-05-20T10:00:00Z",
-                                "purpose": "Evidence"
-                            }
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "4. Documents & Partners",
-            "item": [
-                {
-                    "name": "List Documents",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/documents/"
-                    }
-                },
-                {
-                    "name": "Upload Document",
-                    "request": {
-                        "method": "POST",
-                        "url": "https://antlegal.anthemgt.com/api/documents/",
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "file",
-                                    "type": "file"
-                                },
-                                {
-                                    "key": "document_type",
-                                    "value": "identity_proof"
-                                }
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "List Audit Logs",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/audit-logs/"
-                    }
-                },
-                {
-                    "name": "List Partners",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/partners/"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "5. Global Configuration",
-            "item": [
-                {
-                    "name": "Get System Settings",
-                    "request": {
-                        "method": "GET",
-                        "url": "https://antlegal.anthemgt.com/api/config/settings/"
-                    }
-                },
-                {
-                    "name": "Update Trial Settings",
-                    "request": {
-                        "method": "PATCH",
-                        "url": "https://antlegal.anthemgt.com/api/config/update_settings/",
-                        "body": {
-                            "mode": "json",
-                            "json": {
-                                "is_free_trial_enabled": true,
-                                "trial_period_days": 15
-                            }
-                        }
-                    }
-                }
-            ]
-        }
+  "info": {
+    "name": "AntLegal Law Firm Management System - Complete API Collection",
+    "description": "Complete API collection for AntLegal Law Firm Management System with all endpoints, authentication methods, and workflows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
     ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://antlegal.anthemgt.com",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "firm_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "case_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "description": "All authentication endpoints including login, OTP, password management, and logout",
+      "item": [
+        {
+          "name": "Login with Username/Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', jsonData.token);",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login_username_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login_username_password",
+                ""
+              ]
+            },
+            "description": "Login using username/email and password. Returns authentication token."
+          },
+          "response": []
+        },
+        {
+          "name": "Request Phone OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/send_otp/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "send_otp",
+                ""
+              ]
+            },
+            "description": "Request OTP for phone number login. OTP valid for 10 minutes."
+          },
+          "response": []
+        },
+        {
+          "name": "Request Email OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/request_email_otp/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "request_email_otp",
+                ""
+              ]
+            },
+            "description": "Request OTP for email login. OTP valid for 10 minutes."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP (Phone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', jsonData.token);",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"+919876543210\",\n  \"otp_code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify_otp/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify_otp",
+                ""
+              ]
+            },
+            "description": "Verify OTP and get authentication token. Maximum 5 attempts allowed."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP (Email)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', jsonData.token);",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp_code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify_otp/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify_otp",
+                ""
+              ]
+            },
+            "description": "Verify OTP and get authentication token. Maximum 5 attempts allowed."
+          },
+          "response": []
+        },
+        {
+          "name": "Set Initial Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"+919876543210\",\n  \"password\": \"newpassword123\",\n  \"password_confirm\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/set_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "set_password",
+                ""
+              ]
+            },
+            "description": "Set password for users added by admin. Used for first-time password setup."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout",
+                ""
+              ]
+            },
+            "description": "Logout current user and invalidate token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. User Management",
+      "description": "User registration, profile management, and user operations",
+      "item": [
+        {
+          "name": "Register as Client (Self-Registration)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"client@example.com\",\n  \"phone_number\": \"+919876543210\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"password\": \"securepass123\",\n  \"password_confirm\": \"securepass123\",\n  \"date_of_birth\": \"1990-01-15\",\n  \"gender\": \"M\",\n  \"address_line_1\": \"123 Main St\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"postal_code\": \"10001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register",
+                ""
+              ]
+            },
+            "description": "Client self-registration endpoint. Creates a new client user account."
+          },
+          "response": []
+        },
+        {
+          "name": "Add User to Firm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"advocate@example.com\",\n  \"phone_number\": \"+919876543211\",\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Smith\",\n  \"user_type\": \"advocate\",\n  \"firm\": \"{{firm_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/add_user/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "add_user",
+                ""
+              ]
+            },
+            "description": "Add user to firm. Requires admin/super_admin/platform_owner permissions. User types: super_admin, admin, advocate, paralegal, client."
+          },
+          "response": []
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ""
+              ]
+            },
+            "description": "List all users. Results filtered based on user permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                ""
+              ]
+            },
+            "description": "Get details of a specific user."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Updated Name\",\n  \"date_of_birth\": \"1990-01-15\",\n  \"aadhar_number\": \"123456789012\",\n  \"pan_number\": \"ABCDE1234F\",\n  \"address_line_1\": \"456 New Street\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"postal_code\": \"400001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                ""
+              ]
+            },
+            "description": "Update user profile information."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                ""
+              ]
+            },
+            "description": "Delete a user. Requires appropriate permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"oldpass123\",\n  \"new_password\": \"newpass123\",\n  \"new_password_confirm\": \"newpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/change_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "change_password",
+                ""
+              ]
+            },
+            "description": "Change password for logged-in user."
+          },
+          "response": []
+        },
+        {
+          "name": "Switch Active Firm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firm_id\": \"{{firm_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/switch_firm/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "switch_firm",
+                ""
+              ]
+            },
+            "description": "Switch active firm context for users who belong to multiple firms."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Firm Management",
+      "description": "Firm and branch management endpoints",
+      "item": [
+        {
+          "name": "Create Firm",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('firm_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firm_name\": \"ABC Law Firm\",\n  \"firm_code\": \"ABC001\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"address\": \"123 Legal Street\",\n  \"postal_code\": \"10001\",\n  \"phone_number\": \"+12125551234\",\n  \"email\": \"info@abclaw.com\",\n  \"website\": \"https://abclaw.com\",\n  \"subscription_type\": \"trial\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/firms/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "firms",
+                ""
+              ]
+            },
+            "description": "Create a new firm. Requires platform_owner or partner_manager permissions. Subscription types: trial, basic, professional, enterprise."
+          },
+          "response": []
+        },
+        {
+          "name": "List Firms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/firms/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "firms",
+                ""
+              ]
+            },
+            "description": "List all firms. Results filtered based on user permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Firm Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/firms/{{firm_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "firms",
+                "{{firm_id}}",
+                ""
+              ]
+            },
+            "description": "Get details of a specific firm."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Firm",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firm_name\": \"Updated Firm Name\",\n  \"subscription_type\": \"professional\",\n  \"phone_number\": \"+12125559999\",\n  \"email\": \"updated@abclaw.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/firms/{{firm_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "firms",
+                "{{firm_id}}",
+                ""
+              ]
+            },
+            "description": "Update firm details. Requires appropriate permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Firm",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/firms/{{firm_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "firms",
+                "{{firm_id}}",
+                ""
+              ]
+            },
+            "description": "Delete a firm. Requires platform_owner permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "List Branches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/branches/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                ""
+              ]
+            },
+            "description": "List all branches for the current firm."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_name\": \"Downtown Branch\",\n  \"branch_code\": \"DT001\",\n  \"address\": \"456 Downtown Ave\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"postal_code\": \"10002\",\n  \"phone_number\": \"+12125552345\",\n  \"email\": \"downtown@abclaw.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/branches/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                ""
+              ]
+            },
+            "description": "Create a new branch for the firm."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Branch Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/branches/:branch_id/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                ":branch_id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "branch_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get details of a specific branch."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Branch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_name\": \"Updated Branch Name\",\n  \"phone_number\": \"+12125559876\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/branches/:branch_id/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                ":branch_id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "branch_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Update branch details."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Branch",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/branches/:branch_id/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                ":branch_id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "branch_id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Delete a branch."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Case Management",
+      "description": "Endpoints for managing legal cases, hearings, and status updates",
+      "item": [
+        {
+          "name": "List Cases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cases/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cases",
+                ""
+              ]
+            },
+            "description": "List all legal cases for the current firm."
+          },
+          "response": []
+        },
+        {
+          "name": "List Active Cases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cases/?is_active=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "is_active",
+                  "value": "true"
+                }
+              ],
+              "path": [
+                "api",
+                "cases",
+                ""
+              ]
+            },
+            "description": "List all active legal cases (excludes disposed and closed cases)."
+          },
+          "response": []
+        },
+        {
+          "name": "List Pre-Litigation Cases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cases/?category=pre_litigation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "pre_litigation"
+                }
+              ],
+              "path": [
+                "api",
+                "cases",
+                ""
+              ]
+            },
+            "description": "List all pre-litigation cases for the current firm."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('case_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_title\": \"GreenWorld Land Acquisition\",\n  \"case_number\": \"2026-RE-004\",\n  \"category\": \"court_case\",\n  \"case_type\": \"real estate\",\n  \"status\": \"open\",\n  \"priority\": \"low\",\n  \"billing_type\": \"retainer\",\n  \"estimated_value\": 80000.00,\n  \"stage\": \"initial_consultation\",\n  \"case_summary\": \"Acquisition of 50-acre conservation land parcel.\",\n  \"total_fee\": 50000.00,\n  \"hearing_fee\": 1000.00,\n  \"additional_expenses\": \"At actuals\",\n  \"payment_terms\": \"50% advance, balance on completion\",\n  \"loe_notes\": \"Standard terms applied\",\n  \"petitioner_name\": \"Linda Park\",\n  \"respondent_name\": \"Opposing Party Name\",\n  \"opposing_counsel\": \"John Doe Law Firm\",\n  \"court_name\": \"Civil Court\",\n  \"court_no\": \"No. 5\",\n  \"judge_name\": \"Hon'ble Justice Smith\",\n  \"district\": \"Bengaluru City\",\n  \"state\": \"Karnataka\",\n  \"representing\": \"petitioner\",\n  \"filing_date\": \"2024-04-11\",\n  \"next_hearing_date\": \"2024-04-30T10:00:00Z\",\n  \"client\": \"{{user_id}}\",\n  \"assigned_advocate\": \"{{user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cases/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cases",
+                ""
+              ]
+            },
+            "description": "Create a new legal case."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Case Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cases/{{case_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cases",
+                "{{case_id}}",
+                ""
+              ]
+            },
+            "description": "Get details of a specific case."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Case Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"disposed\",\n  \"judgment_details\": \"Case settled out of court.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cases/{{case_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cases",
+                "{{case_id}}",
+                ""
+              ]
+            },
+            "description": "Update case status and add judgment details."
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule Hearing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case\": \"{{case_id}}\",\n  \"hearing_date\": \"2024-06-15T10:30:00Z\",\n  \"purpose\": \"Final Arguments\",\n  \"notes\": \"Ensure all evidence is ready.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/hearings/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "hearings",
+                ""
+              ]
+            },
+            "description": "Schedule a new hearing for a case."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Document Management",
+      "description": "Endpoints for uploading and managing legal documents",
+      "item": [
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/documents/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ""
+              ]
+            },
+            "description": "List all documents accessible to the user."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "document_type",
+                  "value": "vakalathnama",
+                  "type": "text"
+                },
+                {
+                  "key": "document_name",
+                  "value": "Vakalathnama.pdf",
+                  "type": "text"
+                },
+                {
+                  "key": "case",
+                  "value": "{{case_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/documents/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ""
+              ]
+            },
+            "description": "Upload a new legal document. Supports multi-part form data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Join Links (Generic Invitation)",
+      "description": "Endpoints for managing and using publicly shareable firm invitation links",
+      "item": [
+        {
+          "name": "Create Join Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_type\": \"advocate\",\n  \"max_uses\": 10,\n  \"expires_at\": \"2024-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/join-links/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                ""
+              ]
+            },
+            "description": "Create a reusable invitation link for a firm. Returns a UUID to be used in public URLs."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Join Link Details (Public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/join-links/:id/details/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                ":id",
+                "details",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "link-uuid-here"
+                }
+              ]
+            },
+            "description": "Public endpoint to check link validity and get firm/role info before registration."
+          },
+          "response": []
+        },
+        {
+          "name": "Join Firm via Link (Public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new_advocate@firm.com\",\n  \"phone_number\": \"+919876543222\",\n  \"first_name\": \"Steve\",\n  \"last_name\": \"Lawyer\",\n  \"password\": \"SecurePass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/join-links/:id/join/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                ":id",
+                "join",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "link-uuid-here"
+                }
+              ]
+            },
+            "description": "Public endpoint to register and join a firm via a reusable link."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Dashboard & Analytics",
+      "description": "Endpoints for role-based dashboard statistics",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                ""
+              ]
+            },
+            "description": "Get role-specific statistics (Platform Owner, Partner Manager, or Firm Admin)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Partners & Audit",
+      "description": "Endpoints for partner management and system audit logs",
+      "item": [
+        {
+          "name": "List Partners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/partners/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "partners",
+                ""
+              ]
+            },
+            "description": "List all strategic partners (Platform Owner only)."
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/audit-logs/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "audit-logs",
+                ""
+              ]
+            },
+            "description": "List system-wide audit logs. Results filtered by permissions."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Client Management",
+      "description": "Register clients, assign advocates, and manage client profiles.",
+      "item": [
+        {
+          "name": "Register Client (Admin - requires advocate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"client@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"phone_number\": \"+919876543210\",\n  \"user_type\": \"client\",\n  \"assigned_advocate_id\": \"PASTE_ADVOCATE_UUID\",\n  \"brief_summary\": \"Property dispute in Delhi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/add_user/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "add_user",
+                ""
+              ]
+            },
+            "description": "Admin registers a new client. assigned_advocate_id is REQUIRED."
+          },
+          "response": []
+        },
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clients/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clients",
+                ""
+              ]
+            },
+            "description": "List all clients in your firm."
+          },
+          "response": []
+        },
+        {
+          "name": "List Advocates (for dropdown)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clients/advocates/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clients",
+                "advocates",
+                ""
+              ]
+            },
+            "description": "Returns all advocates in the firm for the dropdown."
+          },
+          "response": []
+        },
+        {
+          "name": "Client Chooses Advocate (self-registered)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"advocate_id\": \"PASTE_ADVOCATE_UUID\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/clients/choose-advocate/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clients",
+                "choose-advocate",
+                ""
+              ]
+            },
+            "description": "Self-registered client picks an advocate after login."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Generic Join Links",
+      "description": "Reusable invite links. Admin creates link, shares URL, new users sign up through it.",
+      "item": [
+        {
+          "name": "Step 1 - Create Join Link (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_type\": \"advocate\",\n  \"max_uses\": 10,\n  \"expires_at\": \"2026-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/join-links/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                ""
+              ]
+            },
+            "description": "Admin creates a reusable join link. max_uses=0 for unlimited."
+          },
+          "response": []
+        },
+        {
+          "name": "Step 2 - Get Link Details (Public - No Auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/join-links/{{join_link_id}}/details/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                "{{join_link_id}}",
+                "details",
+                ""
+              ]
+            },
+            "description": "PUBLIC. No auth. Frontend calls this when user opens the link. Returns firm_name, role, validity."
+          },
+          "response": []
+        },
+        {
+          "name": "Step 3 - Join via Link (Public - No Auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Ravi\",\n  \"last_name\": \"Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"phone_number\": \"+919876500001\",\n  \"password\": \"SecurePass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/join-links/{{join_link_id}}/join/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                "{{join_link_id}}",
+                "join",
+                ""
+              ]
+            },
+            "description": "PUBLIC. No auth. User fills form, submits. Returns auth token + user data."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Join Links (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/join-links/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "join-links",
+                ""
+              ]
+            },
+            "description": "List all join links for your firm."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Search and Filter Examples",
+      "description": "Search, ordering, and pagination examples.",
+      "item": [
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/?search=sharma",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "sharma"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Cases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cases/?search=property",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cases",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "property"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sort Cases by Hearing Date",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cases/?ordering=next_hearing_date",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cases",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "next_hearing_date"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
 }

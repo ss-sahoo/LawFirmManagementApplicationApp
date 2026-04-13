@@ -1,5 +1,5 @@
 from django.utils import timezone
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -133,6 +133,9 @@ class FirmViewSet(viewsets.ModelViewSet):
     queryset = Firm.objects.all()
     serializer_class = FirmSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['firm_name', 'firm_code', 'city', 'state', 'email']
+    ordering_fields = ['created_at', 'firm_name']
     
     def get_queryset(self):
         user = self.request.user
@@ -171,6 +174,9 @@ class BranchViewSet(viewsets.ModelViewSet):
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['branch_name', 'city', 'state', 'phone_number']
+    ordering_fields = ['created_at', 'branch_name']
     
     def get_queryset(self):
         user = self.request.user
