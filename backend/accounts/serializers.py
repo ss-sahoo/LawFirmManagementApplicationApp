@@ -17,6 +17,14 @@ class UserFirmRoleSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'is_last_active']
 
 
+class UserBriefSerializer(serializers.ModelSerializer):
+    """Concise user info for nested display"""
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'first_name', 'last_name', 'email', 'phone_number', 'user_type']
+        read_only_fields = fields
+
+
 class CustomUserSerializer(serializers.ModelSerializer):
     firm_name = serializers.CharField(source='firm.firm_name', read_only=True)
     available_firms = UserFirmRoleSerializer(source='firm_memberships', many=True, read_only=True)

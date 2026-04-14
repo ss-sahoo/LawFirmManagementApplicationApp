@@ -48,18 +48,41 @@ class CaseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        # Enforce rule: Only Advocates (or Admins/Platform Owners) can create cases
-        if user.user_type not in ['advocate', 'admin', 'super_admin', 'platform_owner']:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only Advocates or Admins can create cases.")
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        
+        # 1. Permission Check
+        allowed_roles = ['advocate', 'admin', 'super_admin', 'platform_owner']
+        if user.user_type not in allowed_roles:
+            raise PermissionDenied("You do not have permission to create cases.")
             
-        case = serializer.save(firm=user.firm)
-        # Log activity
+        # 2. Extract assignment data
+        advocate = serializer.validated_data.get('assigned_advocate')
+        branch = serializer.validated_data.get('branch')
+        
+        # 3. Validation: Advocate must belong to the same firm
+        if advocate and advocate.firm != user.firm:
+            raise ValidationError({"assigned_advocate": "Assigned advocate must belong to the same law firm."})
+            
+        # 4. Branch Logic
+        if user.user_type == 'admin':
+            # Admins are locked to their specific branch
+            from accounts.models import UserFirmRole
+            admin_role = UserFirmRole.objects.filter(user=user, firm=user.firm).first()
+            if admin_role and admin_role.branch:
+                branch = admin_role.branch
+            elif not branch:
+                 # Fallback to user's direct branch link if available
+                 pass
+
+        # 5. Save Case
+        case = serializer.save(firm=user.firm, branch=branch)
+        
+        # 6. Log activity
         CaseActivity.objects.create(
             case=case,
-            performed_by=self.request.user,
+            performed_by=user,
             activity_type='case_created',
-            description=f"Case created: {case.case_title}"
+            description=f"Case created by {user.get_full_name()} ({user.get_user_type_display()})"
         )
 
     def perform_update(self, serializer):
