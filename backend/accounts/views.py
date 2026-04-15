@@ -10,6 +10,7 @@ import string
 from datetime import timedelta
 import requests
 from django.db.models import F, Q
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 from .models import CustomUser, LoginCredential, OTPVerification, UserInvitation, UserFirmRole, GlobalConfiguration, FirmJoinLink
@@ -106,7 +107,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter] # Fallback if global not set
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['username', 'email', 'first_name', 'last_name', 'phone_number']
     filterset_fields = ['user_type', 'is_active', 'firm']
     ordering_fields = ['created_at', 'id']
