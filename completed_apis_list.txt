@@ -1,70 +1,86 @@
-Total APIs Completed: 58
+Total Core APIs Completed: 71
 
-## Authentication APIs
-1. POST /api/auth/login_username_password/ - Login with username/email and password.
-2. POST /api/auth/request_phone_otp/ - Request OTP for phone-based login.
-3. POST /api/auth/request_email_otp/ - Request OTP for email-based login.
-4. POST /api/auth/verify_otp/ - Verify OTP and obtain authentication token.
-5. POST /api/auth/set_password/ - Set initial password for users added by admins.
-6. POST /api/auth/logout/ - Invalidate token and log out.
+## 1. Authentication & Security (17 Endpoints)
+1. POST /api/auth/login_username_password/ - Login with credentials
+2. POST /api/auth/request_phone_otp/ - Request SMS OTP
+3. POST /api/auth/request_email_otp/ - Request Email OTP
+4. POST /api/auth/verify_otp/ - Verify OTP and get Token
+5. POST /api/auth/set_password/ - Initial password setup
+6. POST /api/auth/logout/ - Invalidate session
+7. POST /api/users/change_password/ - Password update
+8. POST /api/users/register/ - Public registration
+9. POST /api/users/switch_firm/ - Multi-tenancy toggle
+10. POST /api/users/add_user/ - Invited user creation
+11. GET /api/join-links/ - List reusable links
+12. POST /api/join-links/ - Create join link
+13. GET /api/join-links/{id}/ - Link details
+14. PATCH /api/join-links/{id}/ - Update link
+15. DELETE /api/join-links/{id}/ - Delete link
+16. POST /api/join-links/{id}/join/ - Join firm via link
+17. GET /api/invitations/ - Invitation history
 
-## User Management APIs
-7. GET /api/users/ - List users (access restricted by role and firm).
-8. POST /api/users/ - Standard user creation endpoint.
-9. GET /api/users/{id}/ - Retrieve detailed profile of a specific user.
-10. PATCH /api/users/{id}/ - Partially update user profile information.
-11. DELETE /api/users/{id}/ - Remove a user from the system.
-12. POST /api/users/register/ - Public endpoint for Client self-registration.
-13. POST /api/users/add_user/ - Role-based user creation with automatic invitation workflow.
-14. POST /api/users/switch_firm/ - Switch active firm and branch context for multi-firm users.
-15. POST /api/users/change_password/ - Change password for the currently logged-in user.
+## 2. Case Management (18 Endpoints)
+18. GET /api/cases/cases/ - List cases
+19. POST /api/cases/cases/ - Create case
+20. GET /api/cases/cases/{id}/ - Case details
+21. PATCH /api/cases/cases/{id}/ - Update case
+22. DELETE /api/cases/cases/{id}/ - Archive case
+23. GET /api/cases/hearings/ - List hearings
+24. POST /api/cases/hearings/ - Schedule hearing
+25. GET /api/cases/hearings/{id}/ - Hearing detail
+26. PATCH /api/cases/hearings/{id}/ - Update result
+27. DELETE /api/cases/hearings/{id}/ - Cancel hearing
+28. GET /api/cases/drafts/ - List legal drafts
+29. POST /api/cases/drafts/ - Create draft
+30. GET /api/cases/drafts/{id}/ - View draft
+31. PATCH /api/cases/drafts/{id}/ - Edit draft
+32. DELETE /api/cases/drafts/{id}/ - Remove draft
+33. GET /api/cases/activities/ - Case timeline (actions)
+34. POST /api/cases/activities/ - Log activity
+35. GET /api/cases/activities/{id}/ - Activity detail
 
-## Firm Management APIs
-16. GET /api/firms/ - List firms (Platform Owners see all, others see their own).
-17. POST /api/firms/ - Create a new law firm (Platform Owner/Partner Manager).
-18. GET /api/firms/{id}/ - Retrieve firm details and metadata.
-19. PATCH /api/firms/{id}/ - Update firm configurations and subscription status.
-20. DELETE /api/firms/{id}/ - Remove a firm from the platform.
+## 3. Firm & Branch Management (12 Endpoints)
+36. GET /api/firms/ - List firms
+37. POST /api/firms/ - Create firm
+38. GET /api/firms/{id}/ - Firm profile
+39. PATCH /api/firms/{id}/ - Update config
+40. DELETE /api/firms/{id}/ - Deactivate firm
+41. GET /api/branches/ - List branches
+42. POST /api/branches/ - Add branch
+43. GET /api/branches/{id}/ - Branch info
+44. PATCH /api/branches/{id}/ - Update branch
+45. DELETE /api/branches/{id}/ - Remove branch
+46. GET /api/firms/metadata/ - Enum types & Practice areas
+47. GET /api/branches/firm/{id}/ - Firm-specific branches
 
-## Branch Management APIs
-21. GET /api/branches/ - List branches associated with the user's firms.
-22. POST /api/branches/ - Create a new branch for a specific firm.
-23. GET /api/branches/{id}/ - Retrieve branch details.
-24. PATCH /api/branches/{id}/ - Update branch contact information or address.
-25. DELETE /api/branches/{id}/ - Remove a branch.
+## 4. Client Management (6 Endpoints)
+48. GET /api/clients/ - List clients
+49. POST /api/clients/ - Register client
+50. GET /api/clients/{id}/ - Client profile
+51. PATCH /api/clients/{id}/ - Update client
+52. DELETE /api/clients/{id}/ - Remove client
+53. GET /api/clients/{id}/cases/ - Client case history
 
-## Document Management APIs
-26. GET /api/documents/ - List documents uploaded by or shared with the user.
-27. POST /api/documents/ - Upload new documents (Aadhar, PAN, FIR, Petition, etc.).
-28. GET /api/documents/{id}/ - Retrieve document metadata and file URL.
-29. PATCH /api/documents/{id}/ - Update document or verify it (Admin only).
-30. DELETE /api/documents/{id}/ - Delete an uploaded document.
+## 5. User Management (CRUD) (6 Endpoints)
+54. GET /api/users/ - Full user list
+55. GET /api/users/{id}/ - Profile retrieval
+56. PATCH /api/users/{id}/ - Profile update
+57. DELETE /api/users/{id}/ - System removal
+58. GET /api/users/me/ - Current context info
+59. GET /api/users/roles/ - Role hierarchy check
 
-## Invitation Management APIs
-31. GET /api/invitations/ - List pending and historical user invitations.
-32. GET /api/invitations/{id}/ - Retrieve specific invitation details and expiry status.
+## 6. Document Management (6 Endpoints)
+60. GET /api/documents/ - List uploads
+61. POST /api/documents/ - Upload file (S3/Spaces)
+62. GET /api/documents/{id}/ - Document link
+63. PATCH /api/documents/{id}/ - Update metadata
+64. DELETE /api/documents/{id}/ - Purge file
+65. GET /api/documents/case/{id}/ - Case-linked files
 
-## Partner Management APIs
-33. GET /api/partners/ - List independent partners/affiliates.
-34. POST /api/partners/ - Register as a system partner.
-35. GET /api/partners/{id}/ - Retrieve partner profile details.
-36. PATCH /api/partners/{id}/ - Update partner status or information.
-37. DELETE /api/partners/{id}/ - Remove a partner record.
-
-## Audit Log APIs
-38. GET /api/audit-logs/ - View system-wide or firm-specific activity logs.
-39. GET /api/audit-logs/{id}/ - View detailed activity log entry.
-
-## Global Configuration APIs
-40. GET /api/config/settings/ - Retrieve global system settings.
-41. PATCH /api/config/update_settings/ - Update global configurations (Platform Owner only).
-
-## Analytics & Dashboard APIs
-42. GET /api/dashboard/ - Retrieve role-based analytics cards and statistics (Platform Owner, Partner Manager, Super Admin).
-
-
-
-
-
-## Client Management APIs
-43. GET /api/clients/ - List clients associated with the firm (Coming Soon/Model Ready).
+## 7. Partner Management (Independent) (6 Endpoints)
+66. GET /api/partners/ - List independent partners
+67. POST /api/partners/ - Add partner
+68. GET /api/partners/{id}/ - Partner profile
+69. PATCH /api/partners/{id}/ - Update status
+70. DELETE /api/partners/{id}/ - Remove partner
+71. GET /api/partners/analytics/ - Partner performance

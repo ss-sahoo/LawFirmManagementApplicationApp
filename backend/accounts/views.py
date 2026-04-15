@@ -24,7 +24,6 @@ from .serializers import (
     UserFirmRoleSerializer, GlobalConfigurationSerializer,
     FirmJoinLinkSerializer, PublicJoinSerializer
 )
-from audit.models import AuditLog
 
 
 def generate_otp():
@@ -502,21 +501,27 @@ class AuthenticationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_name='login_username_password')
     def login_username_password(self, request):
         """Login with username/email and password"""
-        serializer = UsernamePasswordLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            token, _ = Token.objects.get_or_create(user=user)
-            
-            user.last_login_at = timezone.now()
-            user.save()
-            
-            log_audit(user, 'login', 'Login via username/password')
-            
-            return Response({
-                'token': token.key,
-                'user': CustomUserSerializer(user).data
-            })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = UsernamePasswordLoginSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.validated_data['user']
+                token, _ = Token.objects.get_or_create(user=user)
+                
+                user.last_login_at = timezone.now()
+                user.save()
+                
+                log_audit(user, 'login', 'Login via username/password')
+                
+                return Response({
+                    'token': token.key,
+                    'user': CustomUserSerializer(user).data
+                })
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': f'Login failed: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @action(detail=False, methods=['post'], url_name='send_otp')
     def send_otp(self, request):
