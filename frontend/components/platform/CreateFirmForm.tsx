@@ -10,16 +10,17 @@ import { Panel, SplitPanels, classNames } from './ui';
 
 export default function CreateFirmForm() {
   const router = useRouter();
-  
+
   // -- State --
   const [form, setForm] = useState<Record<string, string>>({
     firm_name: '', firm_code: '', email: '', phone_number: '',
     country: 'IN', state: '', city: '', address: '',
-    postal_code: '', website: '', subscription_type: 'trial'
+    postal_code: '', website: '', subscription_type: 'trial',
+    registration_number: '',
   });
   const [phoneCode, setPhoneCode] = useState('+91');
   const [phoneFlag, setPhoneFlag] = useState('🇮🇳');
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -43,11 +44,11 @@ export default function CreateFirmForm() {
 
   const set = (key: string, val: string) => {
     setForm((p) => {
-        const next = { ...p, [key]: val };
-        // Reset dependent fields
-        if (key === 'country') { next.state = ''; next.city = ''; }
-        if (key === 'state') { next.city = ''; }
-        return next;
+      const next = { ...p, [key]: val };
+      // Reset dependent fields
+      if (key === 'country') { next.state = ''; next.city = ''; }
+      if (key === 'state') { next.city = ''; }
+      return next;
     });
     setError('');
     if (fieldErrors[key]) {
@@ -69,7 +70,7 @@ export default function CreateFirmForm() {
       const fullPhoneNumber = `${phoneCode} ${form.phone_number}`.trim();
       const countryName = countries.find(c => c.isoCode === form.country)?.name || form.country;
       const stateName = states.find(s => s.isoCode === form.state)?.name || form.state;
-      
+
       const payload: any = {
         ...form,
         phone_number: fullPhoneNumber,

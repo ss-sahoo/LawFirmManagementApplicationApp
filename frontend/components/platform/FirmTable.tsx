@@ -5,7 +5,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, MoreVertical, PauseCircle, Trash2, Eye, CheckCircle2, XCircle, ArrowRight, Loader2, Building2 } from 'lucide-react';
 import { customFetch } from '@/lib/fetch';
-import { API } from '@/lib/api';
+import { API, API_BASE_URL } from '@/lib/api';
+
+interface SuperAdminDetails {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  user_type: string;
+  profile_image: string | null;
+}
 
 interface FirmAPI {
   id: string;
@@ -16,12 +26,16 @@ interface FirmAPI {
   country: string;
   address: string;
   postal_code: string;
+  registration_number: string;
+  logo: string | null;
+  practice_areas: any[];
   phone_number: string;
   email: string;
   website: string;
   subscription_type: string;
   is_active: boolean;
   branches: any[];
+  super_admin_details: SuperAdminDetails;
   created_at: string;
   updated_at: string;
 }
@@ -117,7 +131,7 @@ export default function FirmTable() {
         <table className="w-full min-w-[780px]">
           <thead>
             <tr className="border-b border-gray-100 bg-[#f7f8fa]">
-              {['Sl. No', 'Firm', 'Code', 'City', 'Subscription', 'Status', 'Joined', 'View', ''].map((h) => (
+              {['Sl. No', 'Firm', 'Reg. No', 'Code', 'City', 'Super Admin', 'Subscription', 'Status', 'Joined', 'View', ''].map((h) => (
                 <th
                   key={h}
                   className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400"
@@ -144,32 +158,75 @@ export default function FirmTable() {
                   {/* Firm name + email */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-[#0e2340] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-                        {firm.firm_name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#0e2340]">{firm.firm_name}</p>
-                        <p className="text-[11px] text-gray-400">{firm.email}</p>
+                      {firm.logo ? (
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                          <img
+                            src={firm.logo.startsWith('http') ? firm.logo : `${API_BASE_URL}${firm.logo}`}
+                            alt={firm.firm_name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(firm.firm_name)}&background=0e2340&color=fff`;
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-[#0e2340] flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm shadow-[#0e2340]/10">
+                          {firm.firm_name.charAt(0)}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#0e2340] truncate">{firm.firm_name}</p>
+                        <p className="text-[11px] text-gray-400 truncate">{firm.email}</p>
                       </div>
                     </div>
                   </td>
 
                   <td className="px-5 py-4">
-                    <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                    <span className="text-xs font-mono font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg">
+                      {firm.registration_number || 'N/A'}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50/50 border border-blue-100 px-2 py-1 rounded-lg">
                       {firm.firm_code}
                     </span>
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-gray-600">{firm.city}, {firm.state}</td>
+                  <td className="px-5 py-4">
+                    <div className="text-sm text-gray-600 font-medium">{firm.city}</div>
+                    <div className="text-[10px] text-gray-400">{firm.state}</div>
+                  </td>
 
                   <td className="px-5 py-4">
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${
-                      firm.subscription_type === 'premium' 
-                        ? 'bg-purple-50 text-purple-600 border border-purple-100' 
-                        : firm.subscription_type === 'basic'
+                    {firm.super_admin_details ? (
+                      <div className="flex items-center gap-2">
+                        {firm.super_admin_details.profile_image && (
+                          <img
+                            src={firm.super_admin_details.profile_image.startsWith('http') ? firm.super_admin_details.profile_image : `${API_BASE_URL}${firm.super_admin_details.profile_image}`}
+                            alt="Admin"
+                            className="w-6 h-6 rounded-full object-cover border border-gray-100"
+                          />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {firm.super_admin_details.first_name} {firm.super_admin_details.last_name}
+                          </p>
+                          <p className="text-[11px] text-gray-400">{firm.super_admin_details.email}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300 italic">No admin assigned</span>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${firm.subscription_type === 'premium'
+                      ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                      : firm.subscription_type === 'basic'
                         ? 'bg-blue-50 text-blue-600 border border-blue-100'
                         : 'bg-amber-50 text-amber-600 border border-amber-100'
-                    }`}>
+                      }`}>
                       {firm.subscription_type}
                     </span>
                   </td>
@@ -177,11 +234,10 @@ export default function FirmTable() {
                   {/* Status badge */}
                   <td className="px-5 py-4">
                     <span
-                      className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                        firm.is_active
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                          : 'bg-red-50 text-red-500 border border-red-100'
-                      }`}
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${firm.is_active
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                        : 'bg-red-50 text-red-500 border border-red-100'
+                        }`}
                     >
                       {firm.is_active ? (
                         <CheckCircle2 className="w-3 h-3" />
