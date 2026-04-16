@@ -27,96 +27,424 @@ class DashboardViewSet(viewsets.ViewSet):
     Role-based dashboard analytics for:
     - Platform Owners (Global Stats)
     - Partner Managers (Onboarded Firm Stats)
-    - Super Admins (Firm-specific Stats)
+    - Super Admins (Firm-specific Stats with all branches)
+    - Admins (Branch-specific Stats if assigned to a branch)
+    - Advocates (Their assigned clients and cases)
+    - Paralegals (Their assigned cases)
+    - Clients (Their own cases and documents)
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         user = request.user
         role = user.user_type
-        firm = user.firm
+        
+        # Get firm_id from query params to support multi-firm users
+        firm_id = request.query_params.get('firm_id')
+        
+        # Determine which firm to show stats for
+        if firm_id:
+            # User wants to see specific firm stats
+            try:
+                from accounts.models import UserFirmRole
+                # Check if user has access to this firm
+                membership = UserFirmRole.objects.filter(
+                    user=user,
+                    firm_id=firm_id,
+                    is_active=True
+                ).first()
+                
+                if not membership and role != 'platform_owner':
+                    return Response({
+                        'error': 'You do not have access to this firm'
+                    }, status=403)
+                
+                firm = Firm.objects.get(id=firm_id)
+                branch = membership.branch if membership else None
+            except Firm.DoesNotExist:
+                return Response({'error': 'Firm not found'}, status=404)
+        else:
+            # Use user's primary firm
+            firm = user.firm
+            # Get user's branch assignment if any
+            from accounts.models import UserFirmRole
+            membership = UserFirmRole.objects.filter(
+                user=user,
+                firm=firm,
+                is_active=True
+            ).first()
+            branch = membership.branch if membership else None
 
         stats = {
             'role': role,
             'role_display': user.get_user_type_display(),
             'user_name': user.get_full_name(),
+            'user_id': str(user.id),
         }
 
         if role == 'platform_owner':
             stats.update(self.get_platform_owner_stats())
         elif role == 'partner_manager':
             stats.update(self.get_partner_manager_stats(user))
-        elif role in ['super_admin', 'admin']:
-            stats.update(self.get_firm_admin_stats(user, firm))
+        elif role == 'super_admin':
+            stats.update(self.get_super_admin_stats(user, firm))
+        elif role == 'admin':
+            stats.update(self.get_admin_stats(user, firm, branch))
+        elif role == 'advocate':
+            stats.update(self.get_advocate_stats(user, firm))
+        elif role == 'paralegal':
+            stats.update(self.get_paralegal_stats(user, firm))
+        elif role == 'client':
+            stats.update(self.get_client_stats(user))
         else:
             stats.update(self.get_generic_user_stats(user, firm))
 
         return Response(stats)
 
     def get_platform_owner_stats(self):
+        """Platform owner sees global statistics"""
+        total_cases = Case.objects.count() if Case else 0
+        total_clients = Client.objects.count() if Client else 0
+        
         return {
             'cards': {
                 'total_firms': Firm.objects.count(),
+                'active_firms': Firm.objects.filter(is_active=True).count(),
+                'suspended_firms': Firm.objects.filter(is_active=False).count(),
+                'total_users': CustomUser.objects.count(),
                 'active_users': CustomUser.objects.filter(is_active=True).count(),
+                'total_cases': total_cases,
+                'total_clients': total_clients,
+                'total_documents': UserDocument.objects.count(),
                 'case_statistics': {
-                    'total': Case.objects.count() if Case else 0,
-                    'running': Case.objects.filter(status='running').count() if Case else 0,
-                    'disposed': Case.objects.filter(status='disposed').count() if Case else 0,
+                    'total': total_cases,
+                    'open': Case.objects.filter(status='open').count() if Case else 0,
+                    'in_progress': Case.objects.filter(status='in_progress').count() if Case else 0,
                     'closed': Case.objects.filter(status='closed').count() if Case else 0,
+                    'won': Case.objects.filter(status='won').count() if Case else 0,
+                    'lost': Case.objects.filter(status='lost').count() if Case else 0,
                 }
             },
-            'recent_audits': AuditLog.objects.all()[:10].values('action', 'description', 'created_at')
+            'recent_audits': list(AuditLog.objects.all()[:10].values(
+                'action', 'description', 'created_at', 'user__email'
+            ))
         }
 
     def get_partner_manager_stats(self, user):
-        # Filter firms onboarded by this partner
+        """Partner manager sees stats for firms they onboarded"""
         partner_profile = getattr(user, 'partner_profile', None)
         if partner_profile:
             firms_qs = Firm.objects.filter(partner=partner_profile)
         else:
-            # Fallback if no specific partner profile but user is partner_manager type
-            # (In a real system, we'd ensure the profile exists)
             firms_qs = Firm.objects.none()
+        
+        total_cases = Case.objects.filter(firm__in=firms_qs).count() if Case else 0
+        total_clients = Client.objects.filter(firm__in=firms_qs).count() if Client else 0
             
         return {
             'cards': {
                 'total_firms_onboarded': firms_qs.count(),
                 'active_firms': firms_qs.filter(is_active=True).count(),
-                'pending_firms': firms_qs.filter(is_active=False).count(),
-                'recent_activity': AuditLog.objects.filter(
-                    user__firm__in=firms_qs
-                )[:10].values('action', 'description', 'created_at')
-            }
+                'suspended_firms': firms_qs.filter(is_active=False).count(),
+                'total_cases': total_cases,
+                'total_clients': total_clients,
+                'total_users': CustomUser.objects.filter(firm__in=firms_qs).count(),
+            },
+            'firms': list(firms_qs.values(
+                'id', 'firm_name', 'firm_code', 'city', 'state', 
+                'subscription_type', 'is_active', 'created_at'
+            )),
+            'recent_activity': list(AuditLog.objects.filter(
+                user__firm__in=firms_qs
+            )[:10].values('action', 'description', 'created_at', 'user__email'))
         }
 
-    def get_firm_admin_stats(self, user, firm):
+    def get_super_admin_stats(self, user, firm):
+        """Super admin sees all stats for their entire firm (all branches)"""
         if not firm:
             return {'error': 'User not associated with a firm'}
+        
+        # Get all branches in the firm
+        branches = Branch.objects.filter(firm=firm, is_active=True)
+        
+        # Case statistics
+        total_cases = Case.objects.filter(firm=firm).count() if Case else 0
+        open_cases = Case.objects.filter(firm=firm, status='open').count() if Case else 0
+        in_progress_cases = Case.objects.filter(firm=firm, status='in_progress').count() if Case else 0
+        closed_cases = Case.objects.filter(firm=firm, status='closed').count() if Case else 0
+        
+        # Client statistics
+        total_clients = Client.objects.filter(firm=firm).count() if Client else 0
+        
+        # Document statistics
+        total_documents = UserDocument.objects.filter(firm=firm, is_deleted=False).count()
+        pending_verification = UserDocument.objects.filter(
+            firm=firm, 
+            verification_status='pending',
+            is_deleted=False
+        ).count()
+        
+        # Team statistics
+        total_team = CustomUser.objects.filter(firm=firm, is_active=True).count()
+        advocates = CustomUser.objects.filter(firm=firm, user_type='advocate', is_active=True).count()
+        admins = CustomUser.objects.filter(firm=firm, user_type='admin', is_active=True).count()
+        paralegals = CustomUser.objects.filter(firm=firm, user_type='paralegal', is_active=True).count()
+        
+        # Task statistics
+        pending_tasks = Task.objects.filter(firm=firm, status='pending').count() if Task else 0
+        overdue_tasks = Task.objects.filter(
+            firm=firm, 
+            status='pending',
+            due_date__lt=timezone.now()
+        ).count() if Task else 0
             
         return {
             'cards': {
-                'total_cases': {
-                    'total': Case.objects.filter(firm=firm).count() if Case else 0,
-                    'running': Case.objects.filter(firm=firm, status='running').count() if Case else 0,
-                    'disposed': Case.objects.filter(firm=firm, status='disposed').count() if Case else 0,
-                    'closed': Case.objects.filter(firm=firm, status='closed').count() if Case else 0,
-                },
-                'total_clients': Client.objects.filter(firm=firm).count() if Client else 0,
-                'total_documents': UserDocument.objects.filter(user__firm=firm).count(),
-                'team_members': CustomUser.objects.filter(firm=firm).count(),
-                'todos': {
-                    'pending': Task.objects.filter(firm=firm, status='pending').count() if Task else 0,
-                    'upcoming': Task.objects.filter(firm=firm, due_date__gt=timezone.now()).count() if Task else 0,
+                'total_cases': total_cases,
+                'open_cases': open_cases,
+                'in_progress_cases': in_progress_cases,
+                'closed_cases': closed_cases,
+                'total_clients': total_clients,
+                'total_documents': total_documents,
+                'pending_verification': pending_verification,
+                'total_team': total_team,
+                'advocates': advocates,
+                'admins': admins,
+                'paralegals': paralegals,
+                'pending_tasks': pending_tasks,
+                'overdue_tasks': overdue_tasks,
+                'case_statistics': {
+                    'total': total_cases,
+                    'open': open_cases,
+                    'in_progress': in_progress_cases,
+                    'on_hold': Case.objects.filter(firm=firm, status='on_hold').count() if Case else 0,
+                    'closed': closed_cases,
+                    'won': Case.objects.filter(firm=firm, status='won').count() if Case else 0,
+                    'lost': Case.objects.filter(firm=firm, status='lost').count() if Case else 0,
                 }
             },
             'firm_info': {
+                'id': str(firm.id),
                 'name': firm.firm_name,
                 'code': firm.firm_code,
+                'city': firm.city,
+                'state': firm.state,
                 'subscription': firm.subscription_type,
                 'is_suspended': firm.is_suspended,
                 'subscription_end_date': firm.subscription_end_date,
-                'practice_areas': firm.practice_areas
+                'practice_areas': firm.practice_areas,
+                'total_branches': branches.count(),
+            },
+            'branches': list(branches.values(
+                'id', 'branch_name', 'branch_code', 'city', 'state', 
+                'phone_number', 'email', 'is_active'
+            )),
+            'recent_activity': list(AuditLog.objects.filter(
+                user__firm=firm
+            )[:10].values('action', 'description', 'created_at', 'user__email'))
+        }
+    
+    def get_admin_stats(self, user, firm, branch):
+        """Admin sees stats for their specific branch or entire firm if not assigned to branch"""
+        if not firm:
+            return {'error': 'User not associated with a firm'}
+        
+        # If admin is assigned to a specific branch, show only that branch's stats
+        if branch:
+            # Filter by branch
+            cases_qs = Case.objects.filter(firm=firm, branch=branch) if Case else Case.objects.none()
+            clients_qs = Client.objects.filter(firm=firm) if Client else Client.objects.none()
+            # Note: Clients might not have branch field, so we filter by assigned advocate's branch
+            team_qs = CustomUser.objects.filter(firm=firm, is_active=True)
+            
+            # Get team members in this branch
+            from accounts.models import UserFirmRole
+            branch_user_ids = UserFirmRole.objects.filter(
+                firm=firm,
+                branch=branch,
+                is_active=True
+            ).values_list('user_id', flat=True)
+            
+            team_qs = team_qs.filter(id__in=branch_user_ids)
+            
+            branch_info = {
+                'id': str(branch.id),
+                'name': branch.branch_name,
+                'code': branch.branch_code,
+                'city': branch.city,
+                'state': branch.state,
+                'phone_number': branch.phone_number,
+                'email': branch.email,
             }
+        else:
+            # Admin not assigned to specific branch, show entire firm stats
+            cases_qs = Case.objects.filter(firm=firm) if Case else Case.objects.none()
+            clients_qs = Client.objects.filter(firm=firm) if Client else Client.objects.none()
+            team_qs = CustomUser.objects.filter(firm=firm, is_active=True)
+            branch_info = None
+        
+        total_cases = cases_qs.count()
+        total_clients = clients_qs.count()
+        total_team = team_qs.count()
+        
+        return {
+            'cards': {
+                'total_cases': total_cases,
+                'open_cases': cases_qs.filter(status='open').count(),
+                'in_progress_cases': cases_qs.filter(status='in_progress').count(),
+                'closed_cases': cases_qs.filter(status='closed').count(),
+                'total_clients': total_clients,
+                'total_team': total_team,
+                'advocates': team_qs.filter(user_type='advocate').count(),
+                'paralegals': team_qs.filter(user_type='paralegal').count(),
+                'pending_tasks': Task.objects.filter(
+                    firm=firm, 
+                    status='pending'
+                ).count() if Task else 0,
+            },
+            'firm_info': {
+                'id': str(firm.id),
+                'name': firm.firm_name,
+                'code': firm.firm_code,
+                'subscription': firm.subscription_type,
+            },
+            'branch_info': branch_info,
+            'recent_activity': list(AuditLog.objects.filter(
+                user__firm=firm
+            )[:10].values('action', 'description', 'created_at', 'user__email'))
+        }
+    
+    def get_advocate_stats(self, user, firm):
+        """Advocate sees stats for their assigned clients and cases"""
+        if not firm:
+            return {'error': 'User not associated with a firm'}
+        
+        # Cases assigned to this advocate
+        my_cases = Case.objects.filter(assigned_advocate=user) if Case else Case.objects.none()
+        
+        # Clients assigned to this advocate
+        my_clients = Client.objects.filter(assigned_advocate=user) if Client else Client.objects.none()
+        
+        # Documents for my clients
+        my_documents = UserDocument.objects.filter(
+            Q(client__assigned_advocate=user) | Q(case__assigned_advocate=user),
+            is_deleted=False
+        )
+        
+        # My tasks
+        my_tasks = Task.objects.filter(assigned_to=user) if Task else Task.objects.none()
+        
+        return {
+            'cards': {
+                'my_cases': my_cases.count(),
+                'open_cases': my_cases.filter(status='open').count(),
+                'in_progress_cases': my_cases.filter(status='in_progress').count(),
+                'my_clients': my_clients.count(),
+                'my_documents': my_documents.count(),
+                'pending_tasks': my_tasks.filter(status='pending').count(),
+                'overdue_tasks': my_tasks.filter(
+                    status='pending',
+                    due_date__lt=timezone.now()
+                ).count(),
+                'upcoming_hearings': my_cases.filter(
+                    next_hearing_date__gte=timezone.now(),
+                    next_hearing_date__lte=timezone.now() + timezone.timedelta(days=7)
+                ).count(),
+            },
+            'firm_info': {
+                'id': str(firm.id),
+                'name': firm.firm_name,
+            },
+            'recent_cases': list(my_cases.order_by('-updated_at')[:5].values(
+                'id', 'case_title', 'case_number', 'status', 'next_hearing_date', 'updated_at'
+            )),
+            'recent_clients': list(my_clients.order_by('-created_at')[:5].values(
+                'id', 'first_name', 'last_name', 'email', 'phone_number', 'created_at'
+            ))
+        }
+    
+    def get_paralegal_stats(self, user, firm):
+        """Paralegal sees stats for their assigned cases"""
+        if not firm:
+            return {'error': 'User not associated with a firm'}
+        
+        # Cases assigned to this paralegal
+        my_cases = Case.objects.filter(assigned_paralegal=user) if Case else Case.objects.none()
+        
+        # My tasks
+        my_tasks = Task.objects.filter(assigned_to=user) if Task else Task.objects.none()
+        
+        # Documents I uploaded
+        my_documents = UserDocument.objects.filter(
+            uploaded_by=user,
+            is_deleted=False
+        )
+        
+        return {
+            'cards': {
+                'my_cases': my_cases.count(),
+                'open_cases': my_cases.filter(status='open').count(),
+                'in_progress_cases': my_cases.filter(status='in_progress').count(),
+                'my_documents': my_documents.count(),
+                'pending_tasks': my_tasks.filter(status='pending').count(),
+                'overdue_tasks': my_tasks.filter(
+                    status='pending',
+                    due_date__lt=timezone.now()
+                ).count(),
+            },
+            'firm_info': {
+                'id': str(firm.id),
+                'name': firm.firm_name,
+            },
+            'recent_cases': list(my_cases.order_by('-updated_at')[:5].values(
+                'id', 'case_title', 'case_number', 'status', 'updated_at'
+            ))
+        }
+    
+    def get_client_stats(self, user):
+        """Client sees stats for their own cases and documents"""
+        # Get client profile
+        client_profile = getattr(user, 'client_profile', None)
+        
+        if not client_profile:
+            return {
+                'cards': {
+                    'my_cases': 0,
+                    'my_documents': 0,
+                },
+                'message': 'No client profile found'
+            }
+        
+        # My cases
+        my_cases = Case.objects.filter(client=client_profile) if Case else Case.objects.none()
+        
+        # My documents
+        my_documents = UserDocument.objects.filter(
+            client=client_profile,
+            is_deleted=False
+        )
+        
+        return {
+            'cards': {
+                'my_cases': my_cases.count(),
+                'open_cases': my_cases.filter(status='open').count(),
+                'in_progress_cases': my_cases.filter(status='in_progress').count(),
+                'closed_cases': my_cases.filter(status='closed').count(),
+                'my_documents': my_documents.count(),
+                'upcoming_hearings': my_cases.filter(
+                    next_hearing_date__gte=timezone.now()
+                ).count(),
+            },
+            'client_info': {
+                'id': str(client_profile.id),
+                'name': client_profile.get_full_name(),
+                'email': client_profile.email,
+                'phone': client_profile.phone_number,
+                'assigned_advocate': client_profile.assigned_advocate.get_full_name() if client_profile.assigned_advocate else None,
+            },
+            'recent_cases': list(my_cases.order_by('-updated_at')[:5].values(
+                'id', 'case_title', 'case_number', 'status', 'next_hearing_date', 'updated_at'
+            ))
         }
 
     def get_generic_user_stats(self, user, firm):

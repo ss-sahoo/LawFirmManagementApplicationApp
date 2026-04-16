@@ -105,6 +105,14 @@ DATABASES = {
     }
 }
 
+# Use SQLite for tests (faster and doesn't require PostgreSQL)
+import sys
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

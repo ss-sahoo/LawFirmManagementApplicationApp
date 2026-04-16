@@ -808,60 +808,81 @@ class UserInvitationViewSet(viewsets.ModelViewSet):
         })
 
 
-class GlobalConfigurationViewSet(viewsets.ViewSet):
+class GlobalConfigurationViewSet(viewsets.ModelViewSet):
     """ViewSet for managing global configuration settings"""
+    queryset = GlobalConfiguration.objects.all()
+    serializer_class = GlobalConfigurationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'patch', 'put']
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='settings')
-    def settings(self, request):
-        """Get current global settings (Restricted to Platform Owner)"""
+    def get_queryset(self):
+        """Only platform owner can access"""
+        if self.request.user.user_type != 'platform_owner':
+            return GlobalConfiguration.objects.none()
+        return GlobalConfiguration.objects.all()
+    
+    def list(self, request):
+        """Get current global settings"""
         if request.user.user_type != 'platform_owner':
             return Response(
                 {'error': 'Only Platform Owner can view global settings'},
-                status=status.HTTP_403_FORBIDDEN
+                status=403
             )
         
         try:
             config = GlobalConfiguration.get_settings()
-            return Response({
-                'is_free_trial_enabled': config.is_free_trial_enabled,
-                'trial_period_days': config.trial_period_days
-            })
+            serializer = self.get_serializer(config)
+            return Response(serializer.data)
         except Exception as e:
             return Response({
                 'is_free_trial_enabled': True,
                 'trial_period_days': 15,
                 'note': 'Using fallback defaults'
-            }, status=status.HTTP_200_OK)
+            })
     
-    @action(detail=False, methods=['patch'], url_name='update_settings')
-    def update_settings(self, request):
-        """Update global settings (Platform Owner only)"""
+    def retrieve(self, request, pk=None):
+        """Get specific config by ID"""
+        if request.user.user_type != 'platform_owner':
+            return Response(
+                {'error': 'Only Platform Owner can view global settings'},
+                status=403
+            )
+        
+        config = GlobalConfiguration.get_settings()
+        serializer = self.get_serializer(config)
+        return Response(serializer.data)
+    
+    def partial_update(self, request, pk=None):
+        """Update global settings"""
+        if request.user.user_type != 'platform_owner':
+            return Response(
+                {'error': 'Only Platform Owner can update global settings'},
+                status=403
+            )
+        
         try:
-            if request.user.user_type != 'platform_owner':
-                return Response(
-                    {'error': 'Only Platform Owner can update global settings'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
             config = GlobalConfiguration.get_settings()
-            serializer = GlobalConfigurationSerializer(config, data=request.data, partial=True)
+            serializer = self.get_serializer(config, data=request.data, partial=True)
             
             if serializer.is_valid():
                 serializer.save(updated_by=request.user)
                 log_audit(
                     request.user,
                     'update_config',
-                    f'Updated global configuration: Trial Enabled={config.is_free_trial_enabled}, Trial Days={config.trial_period_days}'
+                    f'Updated global configuration'
                 )
                 return Response(serializer.data)
             
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=400)
         except Exception as e:
             return Response(
                 {'error': f'Failed to update settings: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=500
             )
+    
+    def update(self, request, pk=None):
+        """Full update of global settings"""
+        return self.partial_update(request, pk)
 
 
 class FirmJoinLinkViewSet(viewsets.ModelViewSet):
