@@ -1,15 +1,80 @@
-import { Briefcase, PenTool, Calendar, MessageSquare, Plus, ArrowRight } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Briefcase, PenTool, Calendar, MessageSquare, Plus, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { customFetch } from '@/lib/fetch';
+import { API } from '@/lib/api';
+
+interface DashboardData {
+  role: string;
+  role_display: string;
+  user_name: string;
+  cards: {
+    assigned_cases: number;
+    my_clients: number;
+    upcoming_hearings: number;
+    pending_tasks: number;
+  };
+}
 
 export default function AdvocateDashboard() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const response = await customFetch(API.DASHBOARD.GET);
+        const json = await response.json();
+        if (!response.ok) {
+          throw new Error(json.detail || json.message || 'Failed to load dashboard');
+        }
+        setData(json);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load dashboard');
+        console.error('Dashboard fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#4a1c40]" />
+          <p className="text-sm text-gray-400 font-medium">Loading dashboard…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-12 text-center max-w-md">
+          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+          <p className="text-sm text-red-500 font-medium">{error || 'Failed to load dashboard'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { cards } = data;
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Assigned Cases',     val: '18', icon: Briefcase,     color: 'bg-[#4a1c40]' },
-          { label: 'Drafts in Progress', val: '5',  icon: PenTool,       color: 'bg-purple-600' },
-          { label: 'Upcoming Hearings',  val: '3',  icon: Calendar,      color: 'bg-blue-600' },
-          { label: 'Unread Chats',       val: '12', icon: MessageSquare, color: 'bg-emerald-500' },
+          { label: 'Assigned Cases',     val: cards?.assigned_cases || 0,     icon: Briefcase,     color: 'bg-[#4a1c40]' },
+          { label: 'My Clients',         val: cards?.my_clients || 0,         icon: PenTool,       color: 'bg-purple-600' },
+          { label: 'Upcoming Hearings',  val: cards?.upcoming_hearings || 0,  icon: Calendar,      color: 'bg-blue-600' },
+          { label: 'Pending Tasks',      val: cards?.pending_tasks || 0,      icon: MessageSquare, color: 'bg-emerald-500' },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden group">
             <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center mb-4 text-white shadow-sm transition-transform group-hover:-translate-y-1 group-hover:shadow-md`}>

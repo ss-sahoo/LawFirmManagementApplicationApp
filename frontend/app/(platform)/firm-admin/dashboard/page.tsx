@@ -116,7 +116,33 @@ export default function FirmAdminDashboard() {
   }
 
   const { cards, firm_info, user_name } = data;
-  const cases = cards.total_cases;
+  
+  // Ensure cases object has all required properties with defaults
+  const rawCases = cards?.total_cases;
+  const cases = {
+    total: typeof rawCases === 'object' ? (rawCases.total || 0) : (rawCases || 0),
+    running: typeof rawCases === 'object' ? (rawCases.running || 0) : 0,
+    disposed: typeof rawCases === 'object' ? (rawCases.disposed || 0) : 0,
+    closed: typeof rawCases === 'object' ? (rawCases.closed || 0) : 0,
+  };
+
+  // Ensure all required fields exist with defaults
+  const safeCards = {
+    total_clients: cards?.total_clients || 0,
+    total_documents: cards?.total_documents || 0,
+    team_members: cards?.team_members || 0,
+    todos: {
+      pending: cards?.todos?.pending || 0,
+      upcoming: cards?.todos?.upcoming || 0,
+    },
+  };
+
+  const safeFirmInfo = {
+    name: firm_info?.name || 'Unknown Firm',
+    code: firm_info?.code || 'N/A',
+    subscription: firm_info?.subscription || 'free',
+    practice_areas: firm_info?.practice_areas || [],
+  };
 
   // Chart data
   const caseStatusData = [
@@ -130,9 +156,9 @@ export default function FirmAdminDashboard() {
 
   const kpiBarData = [
     { name: 'Cases',     value: cases.total,           color: BRAND_L },
-    { name: 'Clients',   value: cards.total_clients,   color: GREEN   },
-    { name: 'Documents', value: cards.total_documents, color: BLUE    },
-    { name: 'Team',      value: cards.team_members,    color: PURPLE  },
+    { name: 'Clients',   value: safeCards.total_clients,   color: GREEN   },
+    { name: 'Documents', value: safeCards.total_documents, color: BLUE    },
+    { name: 'Team',      value: safeCards.team_members,    color: PURPLE  },
   ];
 
   const quickActions = [
@@ -154,15 +180,15 @@ export default function FirmAdminDashboard() {
               className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm tracking-wider"
               style={{ background: `linear-gradient(135deg, ${BRAND_L}, ${BRAND})` }}
             >
-              {firm_info.name.substring(0, 2).toUpperCase()}
+              {safeFirmInfo.name.substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">{firm_info.name}</h1>
+              <h1 className="text-lg font-bold text-gray-900">{safeFirmInfo.name}</h1>
               <p className="text-xs text-gray-400 mt-0.5">
-                Code: {firm_info.code} &nbsp;·&nbsp;
-                <span className="capitalize">{firm_info.subscription}</span> Plan
-                {firm_info.practice_areas.length > 0 && (
-                  <> &nbsp;·&nbsp; {firm_info.practice_areas.join(', ')}</>
+                Code: {safeFirmInfo.code} &nbsp;·&nbsp;
+                <span className="capitalize">{safeFirmInfo.subscription}</span> Plan
+                {safeFirmInfo.practice_areas && safeFirmInfo.practice_areas.length > 0 && (
+                  <> &nbsp;·&nbsp; {safeFirmInfo.practice_areas.join(', ')}</>
                 )}
               </p>
             </div>
@@ -219,8 +245,8 @@ export default function FirmAdminDashboard() {
 
           {/* Stat cards */}
           {[
-            { label: 'Total Clients',   val: cards.total_clients,   icon: Users,    bg: '#F0FDF4', iconBg: GREEN },
-            { label: 'Total Documents', val: cards.total_documents,  icon: FileText, bg: '#EFF6FF', iconBg: BLUE  },
+            { label: 'Total Clients',   val: safeCards.total_clients,   icon: Users,    bg: '#F0FDF4', iconBg: GREEN },
+            { label: 'Total Documents', val: safeCards.total_documents,  icon: FileText, bg: '#EFF6FF', iconBg: BLUE  },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-gray-200 transition-colors">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-4" style={{ background: s.bg }}>
@@ -235,10 +261,10 @@ export default function FirmAdminDashboard() {
         {/* ── KPI STRIP ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { val: cards.team_members,    lbl: 'Team Members',    icon: UserCheck, bg: '#F5F3FF', iconBg: PURPLE               },
-            { val: cards.todos.pending,   lbl: 'Pending Todos',   icon: Clock,     bg: '#FFFBEB', iconBg: AMBER                },
-            { val: cards.todos.upcoming,  lbl: 'Upcoming Todos',  icon: Calendar,  bg: '#EFF6FF', iconBg: BLUE                 },
-            { val: firm_info.subscription,lbl: 'Subscription Plan',icon: Building2, bg: '#EFF3F8', iconBg: BRAND, isText: true  },
+            { val: safeCards.team_members,    lbl: 'Team Members',    icon: UserCheck, bg: '#F5F3FF', iconBg: PURPLE               },
+            { val: safeCards.todos.pending,   lbl: 'Pending Todos',   icon: Clock,     bg: '#FFFBEB', iconBg: AMBER                },
+            { val: safeCards.todos.upcoming,  lbl: 'Upcoming Todos',  icon: Calendar,  bg: '#EFF6FF', iconBg: BLUE                 },
+            { val: safeFirmInfo.subscription,lbl: 'Subscription Plan',icon: Building2, bg: '#EFF3F8', iconBg: BRAND, isText: true  },
           ].map((k, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: k.bg }}>
@@ -336,18 +362,18 @@ export default function FirmAdminDashboard() {
             <div className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                 {[
-                  { label: 'Firm Name',       value: firm_info.name                    },
-                  { label: 'Firm Code',       value: firm_info.code                    },
-                  { label: 'Subscription',    value: firm_info.subscription, capitalize: true },
+                  { label: 'Firm Name',       value: safeFirmInfo.name                    },
+                  { label: 'Firm Code',       value: safeFirmInfo.code                    },
+                  { label: 'Subscription',    value: safeFirmInfo.subscription, capitalize: true },
                   { label: 'Total Cases',     value: cases.total.toString()            },
                   { label: 'Running Cases',   value: cases.running.toString()          },
                   { label: 'Disposed Cases',  value: cases.disposed.toString()         },
                   { label: 'Closed Cases',    value: cases.closed.toString()           },
-                  { label: 'Total Clients',   value: cards.total_clients.toString()    },
-                  { label: 'Total Documents', value: cards.total_documents.toString()  },
-                  { label: 'Team Members',    value: cards.team_members.toString()     },
-                  { label: 'Pending Todos',   value: cards.todos.pending.toString()    },
-                  { label: 'Upcoming Todos',  value: cards.todos.upcoming.toString()   },
+                  { label: 'Total Clients',   value: safeCards.total_clients.toString()    },
+                  { label: 'Total Documents', value: safeCards.total_documents.toString()  },
+                  { label: 'Team Members',    value: safeCards.team_members.toString()     },
+                  { label: 'Pending Todos',   value: safeCards.todos.pending.toString()    },
+                  { label: 'Upcoming Todos',  value: safeCards.todos.upcoming.toString()   },
                 ].map((item, i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-gray-50">
                     <span className="text-sm font-semibold text-gray-400">{item.label}</span>
@@ -355,11 +381,11 @@ export default function FirmAdminDashboard() {
                   </div>
                 ))}
               </div>
-              {firm_info.practice_areas.length > 0 && (
+              {safeFirmInfo.practice_areas && safeFirmInfo.practice_areas.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-gray-100">
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Practice Areas</p>
                   <div className="flex flex-wrap gap-2">
-                    {firm_info.practice_areas.map((area, i) => (
+                    {safeFirmInfo.practice_areas.map((area, i) => (
                       <span key={i} className="text-xs font-semibold px-3 py-1.5 rounded-lg border"
                         style={{ background: `${BRAND}12`, color: BRAND, borderColor: `${BRAND}20` }}>
                         {area}

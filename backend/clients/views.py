@@ -2,9 +2,12 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from django.db.models import Q
 from .models import Client
 from .serializers import ClientSerializer, AdvocateListSerializer
 from accounts.models import CustomUser
+from documents.models import UserDocument
+from documents.serializers import UserDocumentListSerializer
 
 
 class ClientViewSet(viewsets.ModelViewSet):
@@ -122,4 +125,69 @@ class ClientViewSet(viewsets.ModelViewSet):
         return Response({
             'message': f'You are now assigned to Adv. {advocate.get_full_name()}',
             'client': ClientSerializer(client_profile).data
+        })
+
+    @action(detail=False, methods=['get'], url_path='my-clients', url_name='my-clients')
+    def my_clients(self, request):
+        """
+        For advocates: Get all clients assigned to them.
+        Returns client details with their documents.
+        """
+        user = request.user
+        
+        if user.user_type != 'advocate':
+            return Response(
+                {'error': 'Only advocates can access this endpoint.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get all clients assigned to this advocate
+        clients = Client.objects.filter(
+            assigned_advocate=user,
+            firm=user.firm
+        ).select_related('user_account', 'assigned_advocate')
+        
+        serializer = ClientSerializer(clients, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='documents', url_name='client-documents')
+    def client_documents(self, request, pk=None):
+        """
+        For advocates: Get all documents for a specific client assigned to them.
+        Only shows documents for clients assigned to the requesting advocate.
+        """
+        user = request.user
+        
+        if user.user_type != 'advocate':
+            return Response(
+                {'error': 'Only advocates can access this endpoint.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the client and verify they're assigned to this advocate
+        try:
+            client = Client.objects.get(
+                id=pk,
+                assigned_advocate=user,
+                firm=user.firm
+            )
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client not found or not assigned to you.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get all documents for this client (non-deleted by default)
+        show_deleted = request.query_params.get('show_deleted', 'false').lower() == 'true'
+        documents = UserDocument.objects.filter(client=client)
+        
+        if not show_deleted:
+            documents = documents.filter(is_deleted=False)
+        
+        serializer = UserDocumentListSerializer(documents, many=True)
+        
+        return Response({
+            'client': ClientSerializer(client).data,
+            'documents': serializer.data,
+            'total_documents': documents.count()
         })

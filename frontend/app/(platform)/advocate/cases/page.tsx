@@ -7,6 +7,9 @@ export default function AdvocateCasesPage() {
       title="Assigned Matters"
       description="Review assigned cases, evidence status, next hearings, and drafting workload."
       viewBase="/advocate/cases"
+      primaryHref="/advocate/cases/new"
+      primaryLabel="Create Case"
+      filterByAssignedAdvocate={true}
     />
   );
 }

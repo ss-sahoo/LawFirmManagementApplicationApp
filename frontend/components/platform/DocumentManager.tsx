@@ -80,18 +80,25 @@ export default function DocumentManager({ accent, userId, clientId, caseId, show
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      let url = API.DOCUMENTS.LIST;
+      let url = API.DOCUMENTS.LIST; // Default: user's own documents
       const params = new URLSearchParams();
       
-      if (clientId) {
+      // If viewing a specific user's profile documents, use the user_documents endpoint
+      if (userId) {
+        url = API.DOCUMENTS.USER_DOCUMENTS;
+        params.set('user_id', userId);
+      } 
+      // If filtering by client, use by_client endpoint
+      else if (clientId) {
+        url = API.DOCUMENTS.BY_CLIENT;
         params.set('client_id', clientId);
-      } else if (caseId) {
+      } 
+      // If filtering by case, use by_case endpoint
+      else if (caseId) {
+        url = API.DOCUMENTS.BY_CASE;
         params.set('case_id', caseId);
-      } else if (userId) {
-        // When viewing a specific user's documents, we'll get all documents
-        // The backend will filter based on permissions
-        // For now, we fetch all and the backend handles the filtering
       }
+      // Otherwise, use default LIST endpoint which returns only user's own documents
 
       if (params.toString()) {
         url = `${url}?${params.toString()}`;
@@ -103,32 +110,10 @@ export default function DocumentManager({ accent, userId, clientId, caseId, show
       if (!response.ok) throw new Error(data.detail || 'Failed to fetch documents');
 
       // Handle both paginated and non-paginated responses
-      let filteredDocs = Array.isArray(data) ? data : (data.results || []);
+      const fetchedDocs = Array.isArray(data) ? data : (data.results || []);
       
-      // Debug logging
-      console.log('DocumentManager - Raw API response:', data);
-      console.log('DocumentManager - Extracted docs:', filteredDocs);
-      console.log('DocumentManager - userId prop:', userId);
-      console.log('DocumentManager - clientId prop:', clientId);
-      console.log('DocumentManager - caseId prop:', caseId);
-      
-      // Only filter by userId if explicitly provided (for user detail pages)
-      // Don't filter if no specific filter is provided (for settings/my documents page)
-      if (userId && Array.isArray(filteredDocs)) {
-        console.log('DocumentManager - Filtering by userId:', userId);
-        const beforeFilter = filteredDocs.length;
-        filteredDocs = filteredDocs.filter((doc: any) => {
-          const match = String(doc.uploaded_by) === String(userId);
-          console.log(`Doc ${doc.id}: uploaded_by=${doc.uploaded_by}, userId=${userId}, match=${match}`);
-          return match;
-        });
-        console.log(`DocumentManager - Filtered from ${beforeFilter} to ${filteredDocs.length} docs`);
-      } else {
-        console.log('DocumentManager - No userId filter, showing all accessible documents');
-      }
-
-      console.log('DocumentManager - Final docs to display:', filteredDocs);
-      setDocuments(filteredDocs);
+      console.log('DocumentManager - Fetched documents:', fetchedDocs);
+      setDocuments(fetchedDocs);
     } catch (err: any) {
       setError(err.message);
     } finally {

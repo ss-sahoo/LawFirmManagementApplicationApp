@@ -115,6 +115,28 @@ export default function CaseAddForm({ initialCategory }: { initialCategory?: 'pr
     branches: []
   });
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdvocate, setIsAdvocate] = useState(false);
+
+  // Get current user details
+  useEffect(() => {
+    const userStr = localStorage.getItem('user_details');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+        setIsAdvocate(user.user_type === 'advocate');
+        
+        // If user is advocate, auto-assign them
+        if (user.user_type === 'advocate' && user.id) {
+          setForm(p => ({ ...p, assigned_advocate: user.id }));
+        }
+      } catch (e) {
+        console.error('Error parsing user details:', e);
+      }
+    }
+  }, []);
+
   // Sync category if URL param changes
   useEffect(() => {
     if (urlCategory && urlCategory !== form.category) {
@@ -493,13 +515,23 @@ export default function CaseAddForm({ initialCategory }: { initialCategory?: 'pr
                         required
                         value={form.assigned_advocate}
                         onChange={e => set('assigned_advocate', e.target.value)}
-                        className="h-11 w-full appearance-none rounded-xl border border-gray-100 bg-gray-50/50 pl-11 pr-10 text-sm font-semibold text-gray-800 outline-none focus:bg-white focus:border-[#0e2340] transition-all"
+                        disabled={isAdvocate}
+                        className={`h-11 w-full appearance-none rounded-xl border border-gray-100 pl-11 pr-10 text-sm font-semibold text-gray-800 outline-none transition-all ${
+                          isAdvocate 
+                            ? 'bg-gray-100 cursor-not-allowed opacity-75' 
+                            : 'bg-gray-50/50 focus:bg-white focus:border-[#0e2340]'
+                        }`}
                       >
                         <option value="">Select Advocate</option>
                         {options.advocates.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
+                    {isAdvocate && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        You are automatically assigned as the advocate for this case
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <FieldLabel>Assigned Paralegal</FieldLabel>

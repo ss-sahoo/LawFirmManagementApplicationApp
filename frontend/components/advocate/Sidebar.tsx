@@ -4,14 +4,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Scale, LayoutDashboard, Briefcase, FileText,
-  Calendar, MessageSquare, LogOut, ChevronRight, PenTool
+  Calendar, MessageSquare, LogOut, ChevronRight, PenTool, Users, Plus
 } from 'lucide-react';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
 
 const navItems = [
   { label: 'Dashboard',    path: '/advocate/dashboard', icon: LayoutDashboard },
-  { label: 'Assigned Cases',path: '/advocate/cases',     icon: Briefcase },
+  { label: 'My Clients',   path: '/advocate/clients',   icon: Users },
+  { label: 'Cases',        path: '/advocate/cases',     icon: Briefcase },
   { label: 'Documents',    path: '/advocate/documents', icon: FileText },
   { label: 'Drafting',     path: '/advocate/drafting',  icon: PenTool },
   { label: 'Calendar',     path: '/advocate/calendar',  icon: Calendar },
@@ -70,6 +71,16 @@ export default function AdvocateSidebar() {
             </Link>
           );
         })}
+        
+        {/* Create Case Button */}
+        <div className="pt-3 mt-3 border-t border-gray-100">
+          <Link href="/advocate/cases/new">
+            <div className="group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#4a1c40] text-white hover:bg-[#3a1530] transition-all duration-200 cursor-pointer shadow-sm">
+              <Plus className="w-4 h-4" />
+              <span className="text-sm font-semibold">Create Case</span>
+            </div>
+          </Link>
+        </div>
       </nav>
       <div className="border-t border-gray-100 px-4 py-3">
         <button onClick={handleLogout} className="flex items-center gap-2 text-red-500 hover:opacity-75 transition-opacity px-2">

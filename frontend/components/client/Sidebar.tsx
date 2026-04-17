@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
+import { useState } from 'react';
 import {
   Scale, LayoutDashboard, Briefcase, FileText,
-  Calendar, MessageSquare, LogOut, ChevronRight, CreditCard
+  Calendar, MessageSquare, LogOut, ChevronRight, CreditCard, Users, Link2, X, Copy, Loader2
 } from 'lucide-react';
 
 const navItems = [
@@ -22,6 +23,9 @@ export default function ClientSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const isActive = (path: string) => pathname.startsWith(path);
+  const [showJoinLinkModal, setShowJoinLinkModal] = useState(false);
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [joinLink, setJoinLink] = useState<any>(null);
 
   const handleLogout = async () => {
     try {
@@ -35,47 +39,145 @@ export default function ClientSidebar() {
     }
   };
 
+  const handleCreateJoinLink = async () => {
+    try {
+      setCreatingLink(true);
+      const payload = {
+        user_type: 'client',
+        max_uses: 0,
+        expires_at: null
+      };
+
+      const response = await customFetch(API.JOIN_LINKS.CREATE, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJoinLink(data);
+        setShowJoinLinkModal(true);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to create link');
+      }
+    } catch (err: any) {
+      console.error('Error creating link:', err);
+      alert('Failed to create join link');
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
+  const copyLinkToClipboard = () => {
+    if (!joinLink) return;
+    const fullUrl = `${window.location.origin}/join/${joinLink.id}`;
+    navigator.clipboard.writeText(fullUrl);
+    alert('Link copied to clipboard!');
+  };
+
   return (
-    <aside className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col shrink-0 sticky top-0">
-      <div className="px-6 py-6 border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#1f2937] rounded-lg flex items-center justify-center shadow-md">
-            <Scale className="w-4 h-4 text-white" />
+    <>
+      <aside className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col shrink-0 sticky top-0">
+        <div className="px-6 py-6 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#1f2937] rounded-lg flex items-center justify-center shadow-md">
+              <Scale className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-lg text-gray-900 tracking-tight">
+              Client<span className="text-[#1f2937]">Portal</span>
+            </span>
           </div>
-          <span className="font-bold text-lg text-gray-900 tracking-tight">
-            Client<span className="text-[#1f2937]">Portal</span>
-          </span>
         </div>
-      </div>
-      <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ label, path, icon: Icon }) => {
-          const active = isActive(path);
-          return (
-            <Link key={path} href={path}>
-              <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${
-                active ? 'bg-[#1f2937]/10 text-[#1f2937]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-              }`}>
-                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#1f2937]" />}
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                    active ? 'bg-[#1f2937]/15' : 'bg-gray-100 group-hover:bg-gray-200'
-                  }`}>
-                    <Icon className={`w-4 h-4 ${active ? 'text-[#1f2937]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+        <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+          {navItems.map(({ label, path, icon: Icon }) => {
+            const active = isActive(path);
+            return (
+              <Link key={path} href={path}>
+                <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${
+                  active ? 'bg-[#1f2937]/10 text-[#1f2937]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}>
+                  {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#1f2937]" />}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                      active ? 'bg-[#1f2937]/15' : 'bg-gray-100 group-hover:bg-gray-200'
+                    }`}>
+                      <Icon className={`w-4 h-4 ${active ? 'text-[#1f2937]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                    </div>
+                    <span className="text-sm font-semibold">{label}</span>
                   </div>
-                  <span className="text-sm font-semibold">{label}</span>
+                  {active && <ChevronRight className="w-3.5 h-3.5 text-[#1f2937]/40" />}
                 </div>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-[#1f2937]/40" />}
+              </Link>
+            );
+          })}
+          
+          {/* Join with Link Button */}
+          <div className="pt-3 mt-3 border-t border-gray-100 space-y-2">
+            <button
+              onClick={handleCreateJoinLink}
+              disabled={creatingLink}
+              className="w-full group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#1f2937] text-white hover:bg-[#111827] transition-all duration-200 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creatingLink ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm font-semibold">Creating...</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Join with Link</span>
+                </>
+              )}
+            </button>
+          </div>
+        </nav>
+        <div className="border-t border-gray-100 px-4 py-3">
+          <button onClick={handleLogout} className="w-full flex items-center gap-2 text-red-500 hover:opacity-75 transition-opacity px-2">
+            <LogOut className="w-4 h-4" />
+            <span className="text-[13px] font-semibold">Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Join Link Modal */}
+      {showJoinLinkModal && joinLink && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Join Link Created!</h2>
+              <button onClick={() => setShowJoinLinkModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-[#1f2937]/5 rounded-xl p-4 border border-[#1f2937]/10">
+                <p className="text-sm font-semibold text-[#1f2937] mb-2">Share this link:</p>
+                <div className="bg-white rounded-lg p-3 border border-gray-200 mb-3">
+                  <p className="text-sm text-gray-600 break-all font-mono">{`${window.location.origin}/join/${joinLink.id}`}</p>
+                </div>
+                <button onClick={copyLinkToClipboard} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#1f2937] text-white rounded-lg hover:bg-[#111827] transition-colors font-semibold">
+                  <Copy className="w-4 h-4" />
+                  Copy Link
+                </button>
               </div>
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="border-t border-gray-100 px-4 py-3">
-        <button onClick={handleLogout} className="w-full flex items-center gap-2 text-red-500 hover:opacity-75 transition-opacity px-2">
-          <LogOut className="w-4 h-4" />
-          <span className="text-[13px] font-semibold">Sign Out</span>
-        </button>
-      </div>
-    </aside>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-blue-900 mb-2">How to use:</h4>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>Copy the link above</li>
+                  <li>Share it via email, WhatsApp, or SMS</li>
+                  <li>New clients can register using this link</li>
+                  <li>They will be automatically added to your firm</li>
+                </ol>
+              </div>
+              <button onClick={() => setShowJoinLinkModal(false)} className="w-full px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

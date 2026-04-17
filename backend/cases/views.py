@@ -29,6 +29,12 @@ class CaseViewSet(viewsets.ModelViewSet):
             # Firm-specific filtering
             queryset = queryset.filter(firm=user.firm)
         
+        # Filter by assigned advocate (for advocates to see only their cases)
+        assigned_to_me = self.request.query_params.get('assigned_to_me')
+        if assigned_to_me and assigned_to_me.lower() == 'true':
+            if user.user_type == 'advocate':
+                queryset = queryset.filter(assigned_advocate=user)
+        
         # Filter by status if provided (e.g. ?status=running)
         status = self.request.query_params.get('status')
         if status:

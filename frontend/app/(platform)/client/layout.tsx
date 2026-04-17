@@ -1,3 +1,5 @@
+'use client';
+
 import ClientSidebar from '@/components/client/Sidebar';
 import ClientTopbar from '@/components/client/Topbar';
 import AuthGuard from '@/components/platform/AuthGuard';

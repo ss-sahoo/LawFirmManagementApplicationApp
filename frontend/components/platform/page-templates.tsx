@@ -16,6 +16,9 @@ import {
   PenTool,
   ShieldCheck,
   Users,
+  Link2,
+  Copy,
+  X,
 } from 'lucide-react';
 import {
   ActivityFeed,
@@ -50,7 +53,7 @@ import {
 import { customFetch } from '@/lib/fetch';
 import DocumentManager from '@/components/platform/DocumentManager';
 import { API } from '@/lib/api';
-import { Loader2, PlusCircle, Save, X, ChevronDown } from 'lucide-react';
+import { Loader2, PlusCircle, Save, ChevronDown } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { Country, State, City } from 'country-state-city';
 import { useTopbarTitle } from '@/components/platform/TopbarContext';
@@ -214,33 +217,6 @@ function InfoAside({ accent, title, items }: AccentProps & { title: string; item
     </Panel>
   );
 }
-
-const caseRows = [
-  {
-    matter: 'State vs Mehta',
-    number: 'CRL-2026-1042',
-    acts: 'IPC 420, CrPC 154',
-    status: 'Evidence Stage',
-    advocate: 'Ritika Iyer',
-    hearing: '31 Mar 2026',
-  },
-  {
-    matter: 'Apex Traders Arbitration',
-    number: 'ARB-2026-031',
-    acts: 'Arbitration Act',
-    status: 'Draft Filing',
-    advocate: 'Arjun Sharma',
-    hearing: '04 Apr 2026',
-  },
-  {
-    matter: 'Kumar Property Appeal',
-    number: 'CIV-2026-220',
-    acts: 'Transfer of Property Act',
-    status: 'Judgment Reserved',
-    advocate: 'Neha Sethi',
-    hearing: '07 Apr 2026',
-  },
-];
 
 export function PlatformFirmsHub({ accent, limited }: AccentProps & { limited?: boolean }) {
   const metrics = limited
@@ -543,7 +519,49 @@ export function CasesPage({
   primaryHref,
   primaryLabel,
   viewBase,
-}: AccentProps & { title: string; description: string; primaryHref?: string; primaryLabel?: string; viewBase?: string }) {
+  filterByAssignedAdvocate,
+}: AccentProps & { title: string; description: string; primaryHref?: string; primaryLabel?: string; viewBase?: string; filterByAssignedAdvocate?: boolean }) {
+  const [cases, setCases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        setLoading(true);
+        let url = API.CASES.LIST;
+        
+        // If filtering by assigned advocate, add query parameter
+        if (filterByAssignedAdvocate) {
+          url = `${url}?assigned_to_me=true`;
+        }
+        
+        const response = await customFetch(url);
+        const data = await response.json();
+        
+        // Handle both paginated and non-paginated responses
+        const casesList = Array.isArray(data) ? data : (data.results || []);
+        setCases(casesList);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load cases');
+        console.error('Error fetching cases:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCases();
+  }, [filterByAssignedAdvocate]);
+
+  const caseRows = cases.map((c) => ({
+    matter: c.case_title || 'Untitled Case',
+    number: c.case_number || 'N/A',
+    acts: c.acts_sections || 'N/A',
+    status: c.status || 'N/A',
+    advocate: c.assigned_advocate_name || 'Unassigned',
+    hearing: c.next_hearing_date || 'Not scheduled',
+    viewHref: viewBase ? `${viewBase}/${c.id}` : undefined,
+  }));
+
   return (
     <div className="space-y-8">
       <PageSection
@@ -552,24 +570,39 @@ export function CasesPage({
         actions={primaryHref && primaryLabel ? <ActionLink href={primaryHref} label={primaryLabel} /> : undefined}
       />
 
-
       <Panel title="Case Register" subtitle="Search, filter, and review current matters." actions={<SearchBar placeholder="Search case title, number, or advocate..." />}>
         <SimpleTabs tabs={[{ label: 'All Cases', active: true }, { label: 'Running' }, { label: 'Disposed Off' }, { label: 'Closed' }]} />
         <div className="mt-4">
-          <DataTable
-            columns={[
-              { key: 'matter', label: 'Matter' },
-              { key: 'number', label: 'Case Number' },
-              { key: 'acts', label: 'Acts' },
-              { key: 'status', label: 'Status' },
-              { key: 'advocate', label: 'Assigned Advocate' },
-              { key: 'hearing', label: 'Next Hearing' },
-            ]}
-            rows={caseRows.map((row, index) => ({ ...row, viewHref: viewBase ? `${viewBase}/${index + 1}` : undefined }))}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <p className="ml-3 text-sm text-gray-400">Loading cases...</p>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-sm text-red-500">{error}</p>
+            </div>
+          ) : caseRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Briefcase className="w-12 h-12 text-gray-300 mb-3" />
+              <p className="text-sm text-gray-500 font-medium">No cases assigned yet</p>
+              <p className="text-xs text-gray-400 mt-1">Cases will appear here once assigned to you</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={[
+                { key: 'matter', label: 'Matter' },
+                { key: 'number', label: 'Case Number' },
+                { key: 'acts', label: 'Acts' },
+                { key: 'status', label: 'Status' },
+                { key: 'advocate', label: 'Assigned Advocate' },
+                { key: 'hearing', label: 'Next Hearing' },
+              ]}
+              rows={caseRows}
+            />
+          )}
         </div>
       </Panel>
-
     </div>
   );
 }
@@ -669,6 +702,9 @@ export function TeamPage({ accent, viewBase, role }: AccentProps & { viewBase?: 
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showJoinLinkModal, setShowJoinLinkModal] = useState(false);
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [joinLink, setJoinLink] = useState<any>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -705,6 +741,45 @@ export function TeamPage({ accent, viewBase, role }: AccentProps & { viewBase?: 
     fetchUsers();
   }, [role, debouncedSearch]);
 
+  const handleCreateJoinLink = async () => {
+    if (!role) return;
+    
+    try {
+      setCreatingLink(true);
+      const payload = {
+        user_type: role,
+        max_uses: 0,
+        expires_at: null
+      };
+
+      const response = await customFetch(API.JOIN_LINKS.CREATE, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJoinLink(data);
+        setShowJoinLinkModal(true);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to create link');
+      }
+    } catch (err: any) {
+      console.error('Error creating link:', err);
+      alert('Failed to create join link');
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
+  const copyLinkToClipboard = () => {
+    if (!joinLink) return;
+    const fullUrl = `${window.location.origin}/join/${joinLink.id}`;
+    navigator.clipboard.writeText(fullUrl);
+    alert('Link copied to clipboard!');
+  };
+
   const rows = users.map((u, i) => {
     // Find branch from memberships
     const activeMembership = u.available_firms?.find((m: any) => m.is_active || m.branch_name);
@@ -734,7 +809,28 @@ export function TeamPage({ accent, viewBase, role }: AccentProps & { viewBase?: 
       <PageSection
         title={`${role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Firm'} Team Directory`}
         description="Create and manage your team members with role-aware access and workload visibility."
-        actions={<ActionLink href={`${viewBase}/new`} label={`Add ${role || 'Member'}`} />}
+        actions={
+          <div className="flex gap-3">
+            <ActionLink href={`${viewBase}/new`} label={`Add ${role || 'Member'}`} />
+            <button
+              onClick={handleCreateJoinLink}
+              disabled={creatingLink}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creatingLink ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-4 w-4" />
+                  Join with Link
+                </>
+              )}
+            </button>
+          </div>
+        }
       />
       <MetricGrid accent={accent} metrics={metrics} />
       <Panel
@@ -776,6 +872,43 @@ export function TeamPage({ accent, viewBase, role }: AccentProps & { viewBase?: 
           />
         )}
       </Panel>
+
+      {showJoinLinkModal && joinLink && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Join Link Created!</h2>
+              <button onClick={() => setShowJoinLinkModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-[#4a1c40]/5 rounded-xl p-4 border border-[#4a1c40]/10">
+                <p className="text-sm font-semibold text-[#4a1c40] mb-2">Share this link:</p>
+                <div className="bg-white rounded-lg p-3 border border-gray-200 mb-3">
+                  <p className="text-sm text-gray-600 break-all font-mono">{`${window.location.origin}/join/${joinLink.id}`}</p>
+                </div>
+                <button onClick={copyLinkToClipboard} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#4a1c40] text-white rounded-lg hover:bg-[#3a1530] transition-colors font-semibold">
+                  <Copy className="w-4 h-4" />
+                  Copy Link
+                </button>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-blue-900 mb-2">How to use:</h4>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>Copy the link above</li>
+                  <li>Share it via email, WhatsApp, or SMS</li>
+                  <li>New {role} fills in their details</li>
+                  <li>They join your firm automatically</li>
+                </ol>
+              </div>
+              <button onClick={() => setShowJoinLinkModal(false)} className="w-full px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1624,6 +1757,9 @@ export function ClientsPage({ accent, viewBase, role }: AccentProps & { viewBase
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showJoinLinkModal, setShowJoinLinkModal] = useState(false);
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [joinLink, setJoinLink] = useState<any>(null);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -1648,6 +1784,45 @@ export function ClientsPage({ accent, viewBase, role }: AccentProps & { viewBase
     fetchClients();
   }, [role]);
 
+  const handleCreateJoinLink = async () => {
+    if (!role) return;
+    
+    try {
+      setCreatingLink(true);
+      const payload = {
+        user_type: role,
+        max_uses: 0,
+        expires_at: null
+      };
+
+      const response = await customFetch(API.JOIN_LINKS.CREATE, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJoinLink(data);
+        setShowJoinLinkModal(true);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to create link');
+      }
+    } catch (err: any) {
+      console.error('Error creating link:', err);
+      alert('Failed to create join link');
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
+  const copyLinkToClipboard = () => {
+    if (!joinLink) return;
+    const fullUrl = `${window.location.origin}/join/${joinLink.id}`;
+    navigator.clipboard.writeText(fullUrl);
+    alert('Link copied to clipboard!');
+  };
+
   const rows = clients.map((u, i) => ({
     client: `${u.first_name} ${u.last_name}`,
     matter: 'N/A', // Linking to real matters would require another API call or field
@@ -1663,7 +1838,28 @@ export function ClientsPage({ accent, viewBase, role }: AccentProps & { viewBase
         eyebrow="Client Management"
         title="Client Directory"
         description="Register and manage client records tied to firm matters."
-        actions={<ActionLink href={`${viewBase}/new`} label="Register Client" />}
+        actions={
+          <div className="flex gap-3">
+            <ActionLink href={`${viewBase}/new`} label="Register Client" />
+            <button
+              onClick={handleCreateJoinLink}
+              disabled={creatingLink}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creatingLink ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-4 w-4" />
+                  Join with Link
+                </>
+              )}
+            </button>
+          </div>
+        }
       />
       <MetricGrid accent={accent} metrics={[{ label: 'Total Clients', value: clients.length.toString() }, { label: 'Active', value: clients.filter(c => c.is_active).length.toString() }, { label: 'Pending Docs', value: '0' }, { label: 'New This Month', value: '0' }]} />
       <Panel title="Client Register" subtitle="Current clients, lead matters, and contact status." actions={<SearchBar placeholder="Search clients, phone, or matter..." />}>
@@ -1689,6 +1885,43 @@ export function ClientsPage({ accent, viewBase, role }: AccentProps & { viewBase
           />
         )}
       </Panel>
+
+      {showJoinLinkModal && joinLink && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Join Link Created!</h2>
+              <button onClick={() => setShowJoinLinkModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-[#4a1c40]/5 rounded-xl p-4 border border-[#4a1c40]/10">
+                <p className="text-sm font-semibold text-[#4a1c40] mb-2">Share this link:</p>
+                <div className="bg-white rounded-lg p-3 border border-gray-200 mb-3">
+                  <p className="text-sm text-gray-600 break-all font-mono">{`${window.location.origin}/join/${joinLink.id}`}</p>
+                </div>
+                <button onClick={copyLinkToClipboard} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#4a1c40] text-white rounded-lg hover:bg-[#3a1530] transition-colors font-semibold">
+                  <Copy className="w-4 h-4" />
+                  Copy Link
+                </button>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-blue-900 mb-2">How to use:</h4>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>Copy the link above</li>
+                  <li>Share it via email, WhatsApp, or SMS</li>
+                  <li>New {role} fills in their details</li>
+                  <li>They join your firm automatically</li>
+                </ol>
+              </div>
+              <button onClick={() => setShowJoinLinkModal(false)} className="w-full px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -36,11 +36,16 @@ export const API = {
   DOCUMENTS: {
     LIST: "/api/documents/",
     UPLOAD: "/api/documents/",
-    DETAIL: (uuid: string) => `/api/documents/${uuid}/`
+    DETAIL: (uuid: string) => `/api/documents/${uuid}/`,
+    USER_DOCUMENTS: "/api/documents/user_documents/",
+    BY_CLIENT: "/api/documents/by_client/",
+    BY_CASE: "/api/documents/by_case/"
   },
   CLIENTS: {
     LIST: "/api/clients/",
-    DETAIL: (uuid: string) => `/api/clients/${uuid}/`
+    DETAIL: (uuid: string) => `/api/clients/${uuid}/`,
+    MY_CLIENTS: "/api/clients/my-clients/",
+    CLIENT_DOCUMENTS: (uuid: string) => `/api/clients/${uuid}/documents/`
   },
   PARTNERS: {
     LIST: "/api/partners/",
@@ -59,6 +64,14 @@ export const API = {
     LIST: "/api/cases/cases/",
     CREATE: "/api/cases/cases/",
     DETAIL: (id: string) => `/api/cases/cases/${id}/`
+  },
+  JOIN_LINKS: {
+    LIST: "/api/join-links/",
+    CREATE: "/api/join-links/",
+    DETAIL: (id: string) => `/api/join-links/${id}/`,
+    DELETE: (id: string) => `/api/join-links/${id}/`,
+    GET_DETAILS: (id: string) => `/api/join-links/${id}/details/`,
+    JOIN: (id: string) => `/api/join-links/${id}/join/`
   }
 };
 

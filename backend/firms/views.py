@@ -294,26 +294,70 @@ class DashboardViewSet(viewsets.ViewSet):
         total_clients = team_qs.filter(user_type='client').count()
         total_team = team_qs.count()
         
+        # Get document count
+        if branch:
+            # Documents for this branch (uploaded by branch members)
+            from accounts.models import UserFirmRole
+            branch_user_ids = UserFirmRole.objects.filter(
+                firm=firm,
+                branch=branch,
+                is_active=True
+            ).values_list('user_id', flat=True)
+            total_documents = UserDocument.objects.filter(
+                uploaded_by__id__in=branch_user_ids,
+                is_deleted=False
+            ).count()
+        else:
+            total_documents = UserDocument.objects.filter(firm=firm, is_deleted=False).count()
+        
+        # Get task counts
+        if branch:
+            pending_tasks = Task.objects.filter(
+                firm=firm,
+                assigned_to__id__in=branch_user_ids,
+                status='pending'
+            ).count() if Task else 0
+            upcoming_tasks = Task.objects.filter(
+                firm=firm,
+                assigned_to__id__in=branch_user_ids,
+                status='pending',
+                due_date__gte=timezone.now(),
+                due_date__lte=timezone.now() + timezone.timedelta(days=7)
+            ).count() if Task else 0
+        else:
+            pending_tasks = Task.objects.filter(
+                firm=firm,
+                status='pending'
+            ).count() if Task else 0
+            upcoming_tasks = Task.objects.filter(
+                firm=firm,
+                status='pending',
+                due_date__gte=timezone.now(),
+                due_date__lte=timezone.now() + timezone.timedelta(days=7)
+            ).count() if Task else 0
+        
         return {
             'cards': {
-                'total_cases': total_cases,
-                'open_cases': cases_qs.filter(status='open').count(),
-                'in_progress_cases': cases_qs.filter(status='in_progress').count(),
-                'closed_cases': cases_qs.filter(status='closed').count(),
+                'total_cases': {
+                    'total': total_cases,
+                    'running': cases_qs.filter(status__in=['open', 'in_progress']).count(),
+                    'disposed': cases_qs.filter(status='disposed').count(),
+                    'closed': cases_qs.filter(status='closed').count(),
+                },
                 'total_clients': total_clients,
-                'total_team': total_team,
-                'advocates': team_qs.filter(user_type='advocate').count(),
-                'paralegals': team_qs.filter(user_type='paralegal').count(),
-                'pending_tasks': Task.objects.filter(
-                    firm=firm, 
-                    status='pending'
-                ).count() if Task else 0,
+                'total_documents': total_documents,
+                'team_members': total_team,
+                'todos': {
+                    'pending': pending_tasks,
+                    'upcoming': upcoming_tasks,
+                },
             },
             'firm_info': {
                 'id': str(firm.id),
                 'name': firm.firm_name,
                 'code': firm.firm_code,
                 'subscription': firm.subscription_type,
+                'practice_areas': firm.practice_areas or [],
             },
             'branch_info': branch_info,
             'recent_activity': list(AuditLog.objects.filter(

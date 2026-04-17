@@ -28,59 +28,24 @@ class UserDocumentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter documents based on user permissions.
-        By default, only show non-deleted documents.
+        
+        For the main documents page (/documents):
+        - Users see ONLY their own documents
+        
+        For user profile pages, use the 'user_documents' action endpoint
+        which has different visibility rules.
         """
         user = self.request.user
         show_deleted = self.request.query_params.get('show_deleted', 'false').lower() == 'true'
         
-        # Base queryset
-        queryset = UserDocument.objects.all()
+        # Base queryset - only show user's own documents
+        queryset = UserDocument.objects.filter(uploaded_by=user)
         
         # Filter by deletion status
         if not show_deleted:
             queryset = queryset.filter(is_deleted=False)
         
-        # Permission-based filtering
-        if user.user_type == 'platform_owner':
-            # Platform owner sees everything
-            return queryset
-        
-        elif user.user_type in ['super_admin', 'admin']:
-            # Super admin sees all documents in their firm
-            return queryset.filter(firm=user.firm)
-        
-        elif user.user_type == 'advocate':
-            # Advocate sees:
-            # 1. Documents they uploaded
-            # 2. Documents for clients assigned to them
-            # 3. Documents for cases assigned to them
-            return queryset.filter(
-                Q(firm=user.firm) & (
-                    Q(uploaded_by=user) |
-                    Q(client__assigned_advocate=user) |
-                    Q(case__assigned_advocate=user)
-                )
-            )
-        
-        elif user.user_type == 'paralegal':
-            # Paralegal sees:
-            # 1. Documents they uploaded
-            # 2. Documents for cases assigned to them
-            return queryset.filter(
-                Q(firm=user.firm) & (
-                    Q(uploaded_by=user) |
-                    Q(case__assigned_paralegal=user)
-                )
-            )
-        
-        elif user.user_type == 'client':
-            # Client sees only their own documents
-            if hasattr(user, 'client_profile'):
-                return queryset.filter(client=user.client_profile)
-            return queryset.filter(uploaded_by=user)
-        
-        # Default: only documents uploaded by the user
-        return queryset.filter(uploaded_by=user)
+        return queryset
     
     def get_object(self):
         """Check permissions before returning object"""
@@ -251,5 +216,85 @@ class UserDocumentViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Only admins can view deleted documents.")
         
         queryset = self.get_queryset().filter(is_deleted=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def user_documents(self, request):
+        """
+        Get documents for a specific user (for profile detail pages).
+        
+        Visibility rules:
+        - Platform Owner: Can see ALL users' documents from any firm
+        - Firm Admin: Can see documents of Advocates, Paralegals, and Clients within their firm
+        - Advocate: Can see Client documents ONLY if that client is assigned to them through a case
+        - Paralegal: Can see only their own documents
+        - Client: Can see only their own documents
+        """
+        user = request.user
+        target_user_id = request.query_params.get('user_id')
+        
+        if not target_user_id:
+            return Response(
+                {"detail": "user_id parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the target user
+        from accounts.models import CustomUser
+        try:
+            target_user = CustomUser.objects.get(id=target_user_id)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"detail": "User not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Base queryset for target user's documents
+        queryset = UserDocument.objects.filter(
+            uploaded_by=target_user,
+            is_deleted=False
+        )
+        
+        # Permission checks
+        if user.user_type == 'platform_owner':
+            # Platform owner can see all documents
+            pass
+        
+        elif user.user_type in ['super_admin', 'admin']:
+            # Firm admin can see documents of users in their firm
+            if target_user.firm != user.firm:
+                raise PermissionDenied("You can only view documents of users in your firm.")
+            
+            # Can see documents of advocates, paralegals, and clients
+            if target_user.user_type not in ['advocate', 'paralegal', 'client']:
+                raise PermissionDenied("You cannot view documents of this user type.")
+        
+        elif user.user_type == 'advocate':
+            # Advocate can only see client documents if client is assigned to them
+            if target_user.user_type == 'client':
+                # Check if this client is assigned to the advocate
+                if hasattr(target_user, 'client_profile'):
+                    client = target_user.client_profile
+                    # Check if advocate has any cases with this client
+                    from cases.models import Case
+                    has_case = Case.objects.filter(
+                        client=client,
+                        assigned_advocate=user
+                    ).exists()
+                    
+                    if not has_case:
+                        raise PermissionDenied("You can only view documents of clients assigned to you.")
+                else:
+                    raise PermissionDenied("Client profile not found.")
+            else:
+                # Advocates cannot view documents of other user types
+                raise PermissionDenied("You can only view documents of your assigned clients.")
+        
+        else:
+            # Paralegal and Client can only see their own documents
+            if target_user.id != user.id:
+                raise PermissionDenied("You can only view your own documents.")
+        
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
