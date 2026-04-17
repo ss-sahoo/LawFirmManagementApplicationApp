@@ -104,7 +104,8 @@ class DashboardViewSet(viewsets.ViewSet):
     def get_platform_owner_stats(self):
         """Platform owner sees global statistics"""
         total_cases = Case.objects.count() if Case else 0
-        total_clients = Client.objects.count() if Client else 0
+        # Count client users instead of Client records
+        total_clients = CustomUser.objects.filter(user_type='client').count()
         
         return {
             'cards': {
@@ -139,7 +140,8 @@ class DashboardViewSet(viewsets.ViewSet):
             firms_qs = Firm.objects.none()
         
         total_cases = Case.objects.filter(firm__in=firms_qs).count() if Case else 0
-        total_clients = Client.objects.filter(firm__in=firms_qs).count() if Client else 0
+        # Count client users instead of Client records
+        total_clients = CustomUser.objects.filter(firm__in=firms_qs, user_type='client').count()
             
         return {
             'cards': {
@@ -174,7 +176,8 @@ class DashboardViewSet(viewsets.ViewSet):
         closed_cases = Case.objects.filter(firm=firm, status='closed').count() if Case else 0
         
         # Client statistics
-        total_clients = Client.objects.filter(firm=firm).count() if Client else 0
+        # Count client users instead of Client records
+        total_clients = CustomUser.objects.filter(firm=firm, user_type='client', is_active=True).count()
         
         # Document statistics
         total_documents = UserDocument.objects.filter(firm=firm, is_deleted=False).count()
@@ -267,6 +270,9 @@ class DashboardViewSet(viewsets.ViewSet):
             
             team_qs = team_qs.filter(id__in=branch_user_ids)
             
+            # Count client users in this branch
+            total_clients_in_branch = team_qs.filter(user_type='client').count()
+            
             branch_info = {
                 'id': str(branch.id),
                 'name': branch.branch_name,
@@ -284,7 +290,8 @@ class DashboardViewSet(viewsets.ViewSet):
             branch_info = None
         
         total_cases = cases_qs.count()
-        total_clients = clients_qs.count()
+        # Count client users instead of Client records for consistency with user management
+        total_clients = team_qs.filter(user_type='client').count()
         total_team = team_qs.count()
         
         return {

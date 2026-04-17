@@ -48,6 +48,7 @@ import {
   teamFields,
 } from '@/components/platform/mock-data';
 import { customFetch } from '@/lib/fetch';
+import DocumentManager from '@/components/platform/DocumentManager';
 import { API } from '@/lib/api';
 import { Loader2, PlusCircle, Save, X, ChevronDown } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -524,6 +525,9 @@ export function SettingsPageTemplate({
           <div className="space-y-8">
             <ProfileInformationPanel accent={accent} />
             <ChangePasswordPanel accent={accent} />
+            <Panel title="My Documents" subtitle="Upload and manage your personal and professional documents.">
+              <DocumentManager accent={accent} showUpload={true} />
+            </Panel>
           </div>
         }
         right={<InfoAside accent={accent} title="Preference Areas" items={['Identity and verification', 'Notification and reminder preferences', 'Access control visibility and internal audit reminders']} />}
@@ -1200,6 +1204,11 @@ export function UserDetailPage({ accent, userId }: AccentProps & { userId: strin
           </div>
         }
       />
+
+      {/* User Documents Section */}
+      <Panel title="User Documents" subtitle="Personal and professional documents uploaded by this user.">
+        <DocumentManager accent={accent} userId={userId} showUpload={false} />
+      </Panel>
     </div>
   );
 }
@@ -1718,11 +1727,10 @@ export function ReportsPage({ accent }: AccentProps) {
 export function DocumentLibraryPage({ accent, roleTitle, viewBase }: AccentProps & { roleTitle: string; viewBase?: string }) {
   return (
     <div className="space-y-8">
-      <PageSection eyebrow="Documents" title={`${roleTitle} Document Library`} description="Browse document types, version history, and upload ownership." />
-      <SplitPanels
-        left={<Panel title="Document Register" subtitle="FIR, petitions, evidence, orders, agreements, and affidavits."><DocumentHistory rows={documentRows} viewBase={viewBase} /></Panel>}
-        right={<InfoAside accent={accent} title="Library Notes" items={['Each document captures upload date and uploader identity.', 'Version history is visible for review and audit.', 'Document type filters are represented in this mock through grouped rows.']} />}
-      />
+      <PageSection eyebrow="Documents" title={`${roleTitle} Document Library`} description="Upload and manage your personal and professional documents." />
+      <Panel title="My Documents" subtitle="Personal and professional documents for verification and record keeping.">
+        <DocumentManager accent={accent} showUpload={true} />
+      </Panel>
     </div>
   );
 }

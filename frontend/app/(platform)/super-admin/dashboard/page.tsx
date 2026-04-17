@@ -26,17 +26,22 @@ interface DashboardData {
   role: string;
   role_display: string;
   user_name: string;
+  user_id: string;
   cards: {
-    total_cases: {
-      total: number;
-      running: number;
-      disposed: number;
-      closed: number;
-    };
-    total_clients: number;
-    total_documents: number;
-    team_members: number;
-    todos: {
+    total_cases: number;
+    open_cases?: number;
+    in_progress_cases?: number;
+    closed_cases?: number;
+    // Legacy fields for backward compatibility
+    running?: number;
+    disposed?: number;
+    closed?: number;
+    total_clients?: number;
+    total_documents?: number;
+    pending_verification?: number;
+    total_team?: number;
+    team_members?: number;
+    todos?: {
       pending: number;
       upcoming: number;
     };
@@ -44,7 +49,7 @@ interface DashboardData {
   firm_info: {
     name: string;
     code: string;
-    subscription: string;
+    subscription?: string;
     practice_areas: string[];
   };
 }
@@ -113,12 +118,21 @@ export default function SuperAdminDashboard() {
   }
 
   const { cards, firm_info, user_name } = data;
-  const cases = cards.total_cases;
+  
+  // Map API response to expected format
+  const cases = {
+    total: cards.total_cases || 0,
+    running: cards.open_cases || cards.running || 0,
+    disposed: cards.in_progress_cases || cards.disposed || 0,
+    closed: cards.closed_cases || cards.closed || 0,
+  };
+  
+  const teamMembers = cards.total_team || cards.team_members || 0;
 
   // Chart data
   const caseStatusData = [
-    { name: 'Running', value: cases.running, color: BLUE },
-    { name: 'Disposed', value: cases.disposed, color: GREEN },
+    { name: 'Open', value: cases.running, color: BLUE },
+    { name: 'In Progress', value: cases.disposed, color: GREEN },
     { name: 'Closed', value: cases.closed, color: SLATE },
   ].filter(d => d.value > 0);
 
@@ -193,8 +207,8 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="grid grid-cols-3 gap-3 mt-4">
                 {[
-                  { label: 'Running', count: cases.running, dot: '#60A5FA' },
-                  { label: 'Disposed', count: cases.disposed, dot: '#34D399' },
+                  { label: 'Open', count: cases.running, dot: '#60A5FA' },
+                  { label: 'In Progress', count: cases.disposed, dot: '#34D399' },
                   { label: 'Closed', count: cases.closed, dot: '#9CA3AF' },
                 ].map(s => (
                   <div key={s.label} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3">
@@ -211,8 +225,8 @@ export default function SuperAdminDashboard() {
 
           {/* Stat cards */}
           {[
-            { label: 'Total Clients', val: cards.total_clients, icon: Users, bg: '#F0FDF4', iconBg: GREEN },
-            { label: 'Total Documents', val: cards.total_documents, icon: FileText, bg: '#EFF6FF', iconBg: BLUE },
+            { label: 'Total Clients', val: cards.total_clients || 0, icon: Users, bg: '#F0FDF4', iconBg: GREEN },
+            { label: 'Total Documents', val: cards.total_documents || 0, icon: FileText, bg: '#EFF6FF', iconBg: BLUE },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-gray-200 transition-colors">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-4" style={{ background: s.bg }}>
@@ -227,10 +241,10 @@ export default function SuperAdminDashboard() {
         {/* ── KPI STRIP ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { val: cards.team_members, lbl: 'Team Members', icon: UserCheck, bg: '#F5F3FF', iconBg: PURPLE },
-            { val: cards.todos.pending, lbl: 'Pending Todos', icon: Clock, bg: '#FFFBEB', iconBg: AMBER },
-            { val: cards.todos.upcoming, lbl: 'Upcoming Todos', icon: Calendar, bg: '#EFF6FF', iconBg: BLUE },
-            { val: firm_info.subscription, lbl: 'Subscription Plan', icon: Building2, bg: '#FDF2F8', iconBg: BRAND, isText: true },
+            { val: teamMembers, lbl: 'Team Members', icon: UserCheck, bg: '#F5F3FF', iconBg: PURPLE },
+            { val: cards.todos?.pending || 0, lbl: 'Pending Todos', icon: Clock, bg: '#FFFBEB', iconBg: AMBER },
+            { val: cards.todos?.upcoming || 0, lbl: 'Upcoming Todos', icon: Calendar, bg: '#EFF6FF', iconBg: BLUE },
+            { val: firm_info.subscription || 'N/A', lbl: 'Subscription Plan', icon: Building2, bg: '#FDF2F8', iconBg: BRAND, isText: true },
           ].map((k, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: k.bg }}>
@@ -331,18 +345,18 @@ export default function SuperAdminDashboard() {
             <div className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                 {[
-                  { label: 'Firm Name', value: firm_info.name },
-                  { label: 'Firm Code', value: firm_info.code },
-                  { label: 'Subscription', value: firm_info.subscription, capitalize: true },
+                  { label: 'Firm Name', value: firm_info.name || 'N/A' },
+                  { label: 'Firm Code', value: firm_info.code || 'N/A' },
+                  { label: 'Subscription', value: firm_info.subscription || 'N/A', capitalize: true },
                   { label: 'Total Cases', value: cases.total.toString() },
-                  { label: 'Running Cases', value: cases.running.toString() },
-                  { label: 'Disposed Cases', value: cases.disposed.toString() },
+                  { label: 'Open Cases', value: cases.running.toString() },
+                  { label: 'In Progress Cases', value: cases.disposed.toString() },
                   { label: 'Closed Cases', value: cases.closed.toString() },
-                  { label: 'Total Clients', value: cards.total_clients.toString() },
-                  { label: 'Total Documents', value: cards.total_documents.toString() },
-                  { label: 'Team Members', value: cards.team_members.toString() },
-                  { label: 'Pending Todos', value: cards.todos.pending.toString() },
-                  { label: 'Upcoming Todos', value: cards.todos.upcoming.toString() },
+                  { label: 'Total Clients', value: (cards.total_clients || 0).toString() },
+                  { label: 'Total Documents', value: (cards.total_documents || 0).toString() },
+                  { label: 'Team Members', value: teamMembers.toString() },
+                  { label: 'Pending Todos', value: (cards.todos?.pending || 0).toString() },
+                  { label: 'Upcoming Todos', value: (cards.todos?.upcoming || 0).toString() },
                 ].map((item, i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-gray-50">
                     <span className="text-sm font-semibold text-gray-400">{item.label}</span>

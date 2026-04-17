@@ -28,6 +28,19 @@ class UserBriefSerializer(serializers.ModelSerializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     firm_name = serializers.CharField(source='firm.firm_name', read_only=True)
     available_firms = UserFirmRoleSerializer(source='firm_memberships', many=True, read_only=True)
+    uploaded_documents = serializers.SerializerMethodField()
+    
+    def get_uploaded_documents(self, obj):
+        """Get documents uploaded by this user"""
+        from documents.models import UserDocument
+        from documents.serializers import UserDocumentListSerializer
+        
+        documents = UserDocument.objects.filter(
+            uploaded_by=obj,
+            is_deleted=False
+        ).order_by('-uploaded_at')[:10]  # Limit to 10 most recent
+        
+        return UserDocumentListSerializer(documents, many=True, context=self.context).data
     
     class Meta:
         model = CustomUser
@@ -35,13 +48,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'phone_number', 'first_name', 'last_name',
             'user_type', 'date_of_birth', 'gender', 'address_line_1', 'address_line_2',
             'city', 'state', 'country', 'postal_code', 'firm', 'firm_name',
-            'available_firms',
+            'available_firms', 'uploaded_documents',
             'aadhar_number', 'pan_number', 'bar_council_registration', 'bar_council_state',
             'is_phone_verified', 'is_email_verified', 'is_document_verified',
             'is_active', 'created_at', 'updated_at', 'password_set', 'profile_image'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'is_phone_verified', 
-                           'is_email_verified', 'is_document_verified', 'user_type', 'firm']
+                           'is_email_verified', 'is_document_verified', 'user_type', 'firm', 'uploaded_documents']
         extra_kwargs = {
             'password': {'write_only': True}
         }

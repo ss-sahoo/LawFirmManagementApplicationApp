@@ -12,6 +12,7 @@ import { API } from '@/lib/api';
 const navItems = [
   { label: 'Dashboard',    path: '/advocate/dashboard', icon: LayoutDashboard },
   { label: 'Assigned Cases',path: '/advocate/cases',     icon: Briefcase },
+  { label: 'Documents',    path: '/advocate/documents', icon: FileText },
   { label: 'Drafting',     path: '/advocate/drafting',  icon: PenTool },
   { label: 'Calendar',     path: '/advocate/calendar',  icon: Calendar },
   { label: 'Client Chat',  path: '/advocate/chat',      icon: MessageSquare },
