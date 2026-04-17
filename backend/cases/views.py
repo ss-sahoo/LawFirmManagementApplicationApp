@@ -29,6 +29,16 @@ class CaseViewSet(viewsets.ModelViewSet):
             # Firm-specific filtering
             queryset = queryset.filter(firm=user.firm)
         
+        # Filter for clients - only show their own cases
+        if user.user_type == 'client':
+            # Get the client profile
+            if hasattr(user, 'client_profile') and user.client_profile:
+                queryset = queryset.filter(client=user.client_profile)
+            else:
+                # If no client profile, return empty queryset
+                queryset = queryset.none()
+            return queryset
+        
         # Filter by assigned advocate (for advocates to see only their cases)
         assigned_to_me = self.request.query_params.get('assigned_to_me')
         if assigned_to_me and assigned_to_me.lower() == 'true':

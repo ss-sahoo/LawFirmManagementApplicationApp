@@ -925,9 +925,11 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
         return obj
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import PermissionDenied as DRFPermDenied
+        
         user = self.request.user
         if user.user_type not in ['platform_owner', 'super_admin', 'admin']:
-            raise permissions.PermissionDenied("Only admins can create join links")
+            raise DRFPermDenied("Only admins can create join links")
         
         firm = user.firm
         # If Platform Owner, they can specify any firm
