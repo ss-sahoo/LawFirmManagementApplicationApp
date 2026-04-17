@@ -1,5 +1,15 @@
-import { CaseDetailPage } from '@/components/platform/page-templates';
+'use client';
+
+import { CaseViewForm } from '@/components/platform/CaseViewEditForm';
 
 export default function ClientCaseDetailPage() {
-  return <CaseDetailPage accent="#1f2937" roleTitle="Client" clientMode />;
+  return (
+    <div className="space-y-6">
+      <CaseViewForm 
+        editBase="/client/cases" 
+        showEdit={false} 
+        backLink="/client/cases" 
+      />
+    </div>
+  );
 }

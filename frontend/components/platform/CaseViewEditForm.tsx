@@ -165,7 +165,17 @@ async function fetchDropdownOptions() {
 // ═══════════════════════════════════════════════════════════════════════════
 // CaseViewForm  — read-only detail view with complete metadata
 // ═══════════════════════════════════════════════════════════════════════════
-export function CaseViewForm({ editBase }: { editBase: string }) {
+export function CaseViewForm({
+  editBase,
+  showEdit = true,
+  backLink,
+  backLabel = 'Back to Cases',
+}: {
+  editBase: string;
+  showEdit?: boolean;
+  backLink?: string;
+  backLabel?: string;
+}) {
   const params = useParams();
   const caseId = params?.caseId as string;
   const [caseData, setCaseData] = useState<any>(null);
@@ -244,19 +254,24 @@ export function CaseViewForm({ editBase }: { editBase: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <Link
-          href={`/super-admin/cases/${c.category === 'pre_litigation' ? 'pre-litigation' : 'court-case'}`}
+          href={
+            backLink ||
+            `/super-admin/cases/${c.category === 'pre_litigation' ? 'pre-litigation' : 'court-case'}`
+          }
           className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Cases
+          {backLabel}
         </Link>
-        <Link
-          href={`${editBase}/${caseId}/edit`}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#0e2340] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#162d4d] transition-all shadow-sm"
-        >
-          <Pencil className="w-4 h-4" />
-          Edit Case
-        </Link>
+        {showEdit && (
+          <Link
+            href={`${editBase}/${caseId}/edit`}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#0e2340] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#162d4d] transition-all shadow-sm"
+          >
+            <Pencil className="w-4 h-4" />
+            Edit Case
+          </Link>
+        )}
       </div>
 
       <SplitPanels

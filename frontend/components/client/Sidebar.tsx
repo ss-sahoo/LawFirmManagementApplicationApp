@@ -7,7 +7,7 @@ import { API } from '@/lib/api';
 import { useState } from 'react';
 import {
   Scale, LayoutDashboard, Briefcase, FileText,
-  Calendar, MessageSquare, LogOut, ChevronRight, CreditCard, Users, Link2, X, Copy, Loader2
+  Calendar, MessageSquare, LogOut, ChevronRight, CreditCard, Users, Link2, X, Copy, Loader2, Settings
 } from 'lucide-react';
 
 const navItems = [
@@ -110,8 +110,37 @@ export default function ClientSidebar() {
             );
           })}
 
-
-        </nav>
+        {(isActive('/client/profile') || isActive('/client/settings')) && (
+          <>
+            <div className="my-3 border-t border-gray-100" />
+            <div className="px-3 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Account Context</span>
+            </div>
+            {[
+              { label: 'Profile', path: '/client/profile', icon: Users },
+              { label: 'Settings', path: '/client/settings', icon: Settings }
+            ].map(({ label, path, icon: Icon }) => {
+              const active = isActive(path);
+              return (
+                <Link key={path} href={path}>
+                  <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#1f2937]/10 text-[#1f2937]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    }`}>
+                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#1f2937]" />}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#1f2937]/15' : 'bg-gray-100 group-hover:bg-gray-200'
+                        }`}>
+                        <Icon className={`w-4 h-4 ${active ? 'text-[#1f2937]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                      </div>
+                      <span className="text-sm font-semibold">{label}</span>
+                    </div>
+                    {active && <ChevronRight className="w-3.5 h-3.5 text-[#1f2937]/40" />}
+                  </div>
+                </Link>
+              );
+            })}
+          </>
+        )}
+      </nav>
         <div className="border-t border-gray-100 px-4 py-3">
           <button onClick={handleLogout} className="w-full flex items-center gap-2 text-red-500 hover:opacity-75 transition-opacity px-2">
             <LogOut className="w-4 h-4" />

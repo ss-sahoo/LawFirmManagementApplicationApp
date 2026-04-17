@@ -49,7 +49,7 @@ export default function FirmAdminTopbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   return (
-    <header className="h-[72px] bg-white border-b border-gray-100 flex items-center justify-between px-8 shrink-0 sticky top-0 z-10">
+    <header className="h-[72px] bg-white border-b border-gray-100 flex items-center justify-between px-8 shrink-0 sticky top-0 z-30">
       <div>
         <h1 className="text-base font-bold text-[#2a4365] leading-tight">{page.title}</h1>
         <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.sub}</p>
