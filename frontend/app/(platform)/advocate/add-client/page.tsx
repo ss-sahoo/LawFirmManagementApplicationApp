@@ -44,7 +44,10 @@ export default function AdvocateAddClientPage() {
       const response = await customFetch(API.JOIN_LINKS.LIST);
       const data = await response.json();
       
-      const activeClientLink = data.find((link: any) => 
+      // Ensure data is an array
+      const links = Array.isArray(data) ? data : (data.results || []);
+      
+      const activeClientLink = links.find((link: any) => 
         link.user_type === 'client' && link.is_active
       );
       
@@ -60,6 +63,7 @@ export default function AdvocateAddClientPage() {
   const handleCreateLink = async () => {
     try {
       setCreating(true);
+      setError(null);
       const payload = {
         user_type: 'client',
         max_uses: 0,
@@ -72,14 +76,15 @@ export default function AdvocateAddClientPage() {
       });
 
       if (response.ok) {
-        await fetchClientLink();
+        const newLink = await response.json();
+        setClientLink(newLink);
       } else {
         const errorData = await response.json();
-        alert(errorData.error || 'Failed to create link');
+        setError(errorData.detail || errorData.error || 'Failed to create link');
       }
     } catch (err: any) {
       console.error('Error creating link:', err);
-      alert('Failed to create client link');
+      setError(err.message || 'Failed to create client link');
     } finally {
       setCreating(false);
     }
