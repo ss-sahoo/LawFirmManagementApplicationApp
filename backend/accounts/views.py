@@ -816,13 +816,13 @@ class GlobalConfigurationViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'patch', 'put']
     
     def get_permissions(self):
-        """Allow public access to the public_settings and settings actions"""
-        if self.action in ['public_settings', 'settings']:
+        """Allow public access to the public_settings and get_settings actions"""
+        if self.action in ['public_settings', 'get_settings']:
             return [permissions.AllowAny()]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='settings')
-    def settings(self, request):
+    def get_settings(self, request):
         """Public endpoint to get trial settings for registration page"""
         try:
             config = GlobalConfiguration.get_settings()
