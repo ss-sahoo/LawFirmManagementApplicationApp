@@ -90,7 +90,7 @@ export default function PlatformOwnerDashboard() {
   useEffect(() => {
     if (!rawData.firms.length && !rawData.cases.length) return;
 
-    const months = [];
+    const months: Array<{ month: string; monthIdx: number; year: number; value: number }> = [];
     if (viewMode === 'annual') {
       for (let i = 0; i < 12; i++) {
         months.push({
