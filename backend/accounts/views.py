@@ -1016,6 +1016,12 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
             # 4. If user is a client, create Client profile
             if link.user_type == 'client':
                 from clients.models import Client
+                
+                # Assign to the advocate who created the link (if they're an advocate)
+                assigned_advocate = None
+                if link.created_by and link.created_by.user_type == 'advocate':
+                    assigned_advocate = link.created_by
+                
                 Client.objects.create(
                     firm=link.firm,
                     first_name=data['first_name'],
@@ -1023,7 +1029,7 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
                     email=data['email'],
                     phone_number=data['phone_number'],
                     user_account=user,
-                    assigned_advocate=None  # Client can choose advocate later
+                    assigned_advocate=assigned_advocate
                 )
             
             # 5. Increment usage count on the link atomically
