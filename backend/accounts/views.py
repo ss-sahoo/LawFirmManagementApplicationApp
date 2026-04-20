@@ -816,14 +816,29 @@ class GlobalConfigurationViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'patch', 'put']
     
     def get_permissions(self):
-        """Allow public access to the public_settings action"""
-        if self.action == 'public_settings':
+        """Allow public access to the public_settings and settings actions"""
+        if self.action in ['public_settings', 'settings']:
             return [permissions.AllowAny()]
         return super().get_permissions()
     
+    @action(detail=False, methods=['get'], url_path='settings')
+    def settings(self, request):
+        """Public endpoint to get trial settings for registration page"""
+        try:
+            config = GlobalConfiguration.get_settings()
+            return Response({
+                'is_free_trial_enabled': config.is_free_trial_enabled,
+                'trial_period_days': config.trial_period_days
+            })
+        except Exception as e:
+            return Response({
+                'is_free_trial_enabled': True,
+                'trial_period_days': 15
+            })
+    
     @action(detail=False, methods=['get'], url_path='public')
     def public_settings(self, request):
-        """Public endpoint to get trial settings for registration page"""
+        """Public endpoint to get trial settings for registration page (alias)"""
         try:
             config = GlobalConfiguration.get_settings()
             return Response({
