@@ -928,8 +928,8 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
         from rest_framework.exceptions import PermissionDenied as DRFPermDenied
         
         user = self.request.user
-        if user.user_type not in ['platform_owner', 'super_admin', 'admin']:
-            raise DRFPermDenied("Only admins can create join links")
+        if user.user_type not in ['platform_owner', 'super_admin', 'admin', 'advocate']:
+            raise DRFPermDenied("Only admins and advocates can create join links")
         
         firm = user.firm
         # If Platform Owner, they can specify any firm
@@ -942,6 +942,12 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
         
         if not firm:
             raise serializers.ValidationError({'firm': 'Firm is required'})
+        
+        # Advocates can only create client join links
+        if user.user_type == 'advocate':
+            user_type = serializer.validated_data.get('user_type')
+            if user_type != 'client':
+                raise DRFPermDenied("Advocates can only create client join links")
             
         serializer.save(created_by=user, firm=firm)
         log_audit(user, 'create_join_link', f"Created {serializer.validated_data.get('user_type')} join link for {firm.firm_name}")
