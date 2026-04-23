@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Scale, LayoutDashboard, Users,
-  Settings, ChevronRight, LogOut, Briefcase, FileText, CreditCard, BarChart2, ChevronDown, UserCheck, Store, X
+  Settings, ChevronRight, LogOut, Briefcase, FileText, CreditCard, BarChart2, ChevronDown, UserCheck, Store, X, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTopbar } from '@/components/platform/TopbarContext';
@@ -14,6 +14,7 @@ import { API } from '@/lib/api';
 
 const topNavItems = [
   { label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
+  { label: 'Calendar', path: '/super-admin/calendar', icon: Calendar },
 ];
 
 const casesSubItems = [
@@ -114,21 +115,26 @@ export default function SuperAdminSidebar() {
           </span>
         </div>
 
-        {/* Dashboard */}
-        <Link href="/super-admin/dashboard">
-          <div className={navRow(isActive('/super-admin/dashboard'))}>
-            {isActive('/super-admin/dashboard') && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#984c1f]" />
-            )}
-            <div className="flex items-center gap-3">
-              <div className={iconBox(isActive('/super-admin/dashboard'))}>
-                <LayoutDashboard className={iconColor(isActive('/super-admin/dashboard'))} />
+        {/* Top Navigation Items (Dashboard, Calendar, etc.) */}
+        {topNavItems.map(({ label, path, icon: Icon }) => {
+          const active = isActive(path);
+          return (
+            <Link key={path} href={path} onClick={closeSidebar}>
+              <div className={navRow(active)}>
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#984c1f]" />
+                )}
+                <div className="flex items-center gap-3">
+                  <div className={iconBox(active)}>
+                    <Icon className={iconColor(active)} />
+                  </div>
+                  <span className="text-sm font-semibold">{label}</span>
+                </div>
+                {active && <ChevronRight className="w-3.5 h-3.5 text-[#984c1f]/40" />}
               </div>
-              <span className="text-sm font-semibold">Dashboard</span>
-            </div>
-            {isActive('/super-admin/dashboard') && <ChevronRight className="w-3.5 h-3.5 text-[#984c1f]/40" />}
-          </div>
-        </Link>
+            </Link>
+          );
+        })}
 
         {/* Cases */}
         <div>

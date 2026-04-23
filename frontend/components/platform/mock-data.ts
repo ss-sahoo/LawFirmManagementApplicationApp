@@ -83,3 +83,50 @@ export const reportCards = [
   { label: 'Billing Realization', value: 'Invoices, collections, overdue balances' },
   { label: 'Client Intake Report', value: 'New clients, active matters, practice-area mix' },
 ];
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: Date;
+  time: string;
+  type: 'hearing' | 'task' | 'deadline' | 'meeting';
+  caseNumber?: string;
+  clientName?: string;
+  role?: string;
+  adminName?: string;
+}
+
+export const MOCK_CALENDAR_EVENTS: CalendarEvent[] = [
+  { id: '1', title: 'Dr H S Ramya vs State of K...', date: new Date(2026, 3, 1), time: '10 AM', type: 'hearing', caseNumber: 'CC 409/2023', adminName: 'Admin', role: 'Litigation' },
+  { id: '2', title: 'Dr H S Ramya vs State of K...', date: new Date(2026, 3, 8), time: '10 AM', type: 'hearing', caseNumber: 'CC 409/2023', adminName: 'Admin', role: 'Litigation' },
+  { id: '3', title: 'Case of melvin mathew', date: new Date(2026, 3, 12), time: '11 AM', type: 'meeting', caseNumber: 'CC 102/2026', clientName: 'Melvin', adminName: 'Admin', role: 'Pre-Litigation' },
+  
+  // April 22nd Detailed Events
+  { id: '101', title: 'MOHAMMED NIZAM vs KUNAL BHATT', date: new Date(2026, 3, 22), time: '9 AM', type: 'deadline', clientName: 'MOHAMMED NIZAM', role: 'Litigation', adminName: 'Admin' },
+  { id: '102', title: 'Cr.No 375/2025 — North East PS vs Madhavi Lakshmi', date: new Date(2026, 3, 22), time: '10 AM', type: 'hearing', clientName: 'Madhavi', role: 'Litigation', adminName: 'Admin' },
+  { id: '103', title: 'CC 409/2023 — RAKESH vs JITHEDRAN', date: new Date(2026, 3, 22), time: '11 AM', type: 'hearing', role: 'Litigation', adminName: 'Admin' },
+  { id: '104', title: 'Case of Anand', date: new Date(2026, 3, 22), time: '1 PM', type: 'task', clientName: 'Anand', role: 'Pre-Litigation', adminName: 'Adv. Shiva Shankar' },
+  { id: '105', title: 'Case of Test', date: new Date(2026, 3, 22), time: '2 PM', type: 'task', clientName: 'Test', role: 'Pre-Litigation', adminName: 'Admin' },
+  { id: '106', title: 'Case of Sushree Mithali', date: new Date(2026, 3, 22), time: '3 PM', type: 'task', clientName: 'Sushree Mithali', role: 'Pre-Litigation', adminName: 'Admin' },
+  { id: '107', title: 'Case of Madhusudhan roa', date: new Date(2026, 3, 22), time: '4 PM', type: 'task', clientName: 'Madhusudhan roa', role: 'Pre-Litigation', adminName: 'Adv. Chaturya' },
+  { id: '108', title: 'Case of Jayanthi K', date: new Date(2026, 3, 22), time: '5 PM', type: 'task', role: 'Pre-Litigation', adminName: 'Admin' },
+];
+
+export const CLIENT_CALENDAR_EVENTS: CalendarEvent[] = [
+  { id: 'c1', title: 'Hearing for Your Case: Dr H S Ramya', date: new Date(2026, 3, 8), time: '10 AM', type: 'hearing', caseNumber: 'CC 409/2023', adminName: 'Admin', role: 'Litigation' },
+  { id: 'c2', title: 'Document Submission Deadline', date: new Date(2026, 3, 15), time: '5 PM', type: 'deadline', adminName: 'Admin' },
+  { id: 'c3', title: 'Meeting with Advocate Shiva Shankar', date: new Date(2026, 3, 22), time: '1 PM', type: 'meeting', adminName: 'Adv. Shiva Shankar' },
+];
+
+export const MOCK_PROFESSIONAL_INVOICES = [
+  { id: 'INV-4401', client: 'Amit Mehta', matter: 'Mehta vs. State', amount: 'Rs. 45,000', status: 'paid' as const, date: '2026-04-12', due: '2026-04-15' },
+  { id: 'INV-4402', client: 'Chen & Associates', matter: 'Civil Appeal 22', amount: 'Rs. 1,20,000', status: 'pending' as const, date: '2026-04-18', due: '2026-04-25' },
+  { id: 'INV-4403', client: 'Torres Law Group', amount: 'Rs. 85,000', status: 'overdue' as const, date: '2026-04-05', due: '2026-04-12' },
+  { id: 'INV-4404', client: 'Sarah Chen', amount: 'Rs. 32,500', status: 'draft' as const, date: '2026-04-21', due: '2026-04-28' },
+];
+
+export const ADMIN_CALENDAR_EVENTS: CalendarEvent[] = [
+  ...MOCK_CALENDAR_EVENTS,
+  { id: 'a1', title: 'Firm-Wide Partners Meeting', date: new Date(2026, 3, 25), time: '2 PM', type: 'meeting', adminName: 'Super Admin' },
+  { id: 'a2', title: 'Platform Maintenance Window', date: new Date(2026, 3, 28), time: '12 AM', type: 'task', adminName: 'System' },
+];

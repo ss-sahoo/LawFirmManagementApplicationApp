@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scale, CheckCircle2, ChevronRight, ChevronLeft, User, Building, MapPin, KeyRound, Sparkles, AlertCircle } from 'lucide-react';
+import { Scale, CheckCircle2, ChevronRight, ChevronLeft, User, Building, MapPin, KeyRound, Sparkles, AlertCircle, Briefcase } from 'lucide-react';
 import { Country, State, City } from 'country-state-city';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
@@ -13,7 +13,7 @@ import { PasswordInput } from '@/components/platform/ui';
 export default function RegisterWizard() {
   const router = useRouter();
 
-  const [registerType, setRegisterType] = useState<'client' | 'super_admin'>('client');
+  const [registerType, setRegisterType] = useState<'client' | 'super_admin' | 'advocate'>('client');
   const [currentStep, setCurrentStep] = useState(0);
   const [trialEnabled, setTrialEnabled] = useState(true);
 
@@ -44,6 +44,7 @@ export default function RegisterWizard() {
     password: '', password_confirm: '', date_of_birth: '', gender: 'M',
     address_line_1: '', city: '', state: '', country: '', postal_code: '',
     firm_name: '', firm_address: '',
+    bar_council_id: '', specialization: '', years_experience: '',
   });
 
   // Track ISO codes for the library to fetch dependents
@@ -52,6 +53,8 @@ export default function RegisterWizard() {
 
   const stepsList = registerType === 'client'
     ? ["Account Type", "Personal Details", "Address Data", "Security & Access"]
+    : registerType === 'advocate'
+    ? ["Account Type", "Professional Identification", "Personal Details", "Address Data", "Security & Access"]
     : ["Account Type", "Personal Details", "Law Firm Profile", "Address Data", "Security & Access"];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -86,6 +89,16 @@ export default function RegisterWizard() {
       if (registerType === 'client') {
         delete payload.firm_name;
         delete payload.firm_address;
+        delete payload.bar_council_id;
+        delete payload.specialization;
+        delete payload.years_experience;
+      } else if (registerType === 'advocate') {
+        delete payload.firm_name;
+        delete payload.firm_address;
+      } else if (registerType === 'super_admin') {
+        delete payload.bar_council_id;
+        delete payload.specialization;
+        delete payload.years_experience;
       }
 
       const response = await customFetch(API.USERS.REGISTER, {
@@ -108,7 +121,10 @@ export default function RegisterWizard() {
       if (data.user) localStorage.setItem("user_details", JSON.stringify(data.user));
 
       setTimeout(() => {
-        router.push(data.user?.user_type === 'super_admin' ? '/super-admin/dashboard' : '/client/dashboard');
+        const type = data.user?.user_type;
+        if (type === 'super_admin') router.push('/super-admin/dashboard');
+        else if (type === 'advocate') router.push('/advocate/dashboard');
+        else router.push('/client/dashboard');
       }, 1500);
 
     } catch (err: any) {
@@ -154,6 +170,20 @@ export default function RegisterWizard() {
               </div>
               <h3 className={`text-lg font-bold ${registerType === 'client' ? 'text-[#0e2340]' : 'text-gray-900'}`}>Client Account</h3>
               <p className="text-sm text-gray-500 mt-2 leading-relaxed">Book consultations, manage cases, and securely communicate with legal teams.</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegisterType('advocate')}
+              className={`p-6 rounded-2xl border-2 text-left transition-all ${registerType === 'advocate'
+                ? 'border-[#0e2340] bg-[#0e2340]/5'
+                : 'border-gray-200 hover:border-gray-300'
+                }`}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${registerType === 'advocate' ? 'bg-[#2a4365] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <h3 className={`text-lg font-bold ${registerType === 'advocate' ? 'text-[#0e2340]' : 'text-gray-900'}`}>Advocate Account</h3>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">Independent practitioners managing multiple firms, cases, and digital client notes.</p>
             </button>
             {trialEnabled && (
               <button
@@ -210,6 +240,44 @@ export default function RegisterWizard() {
                 <option value="F">Female</option>
                 <option value="O">Other</option>
               </select>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    if (sectionName === "Professional Identification") {
+      return (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+              <Scale className="w-5 h-5 text-slate-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-[#0e2340]">Professional Credential</h2>
+              <p className="text-gray-500 text-sm">Verify your legal standing and expertise.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Bar Council ID / Enrollment Number</label>
+              <input name="bar_council_id" type="text" required value={formData.bar_council_id} onChange={handleInputChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] text-[15px] font-medium text-slate-900 placeholder-slate-400" placeholder="KAR/1234/2026" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Primary Specialization</label>
+              <select name="specialization" required value={formData.specialization} onChange={handleInputChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] text-[15px] font-medium text-slate-900 placeholder-slate-400 bg-white">
+                <option value="">Select Specialization...</option>
+                <option value="criminal">Criminal Law</option>
+                <option value="civil">Civil Litigation</option>
+                <option value="corporate">Corporate & Tech</option>
+                <option value="family">Family & Matrimonial</option>
+                <option value="tax">Taxation & Finance</option>
+                <option value="intellectual_property">Intellectual Property</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Years of Experience</label>
+              <input name="years_experience" type="number" required value={formData.years_experience} onChange={handleInputChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] text-[15px] font-medium text-slate-900 placeholder-slate-400" placeholder="5" />
             </div>
           </div>
         </motion.div>

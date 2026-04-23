@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import ProfessionalBillingHub from '@/components/platform/ProfessionalBillingHub';
 
-export default function SuperAdminBillingPage() {
+export default function FirmAdminBillingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API fetch delay
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
@@ -15,7 +14,7 @@ export default function SuperAdminBillingPage() {
   return (
     <div className="space-y-6">
       <ProfessionalBillingHub 
-        role="super-admin" 
+        role="admin" 
         isLoading={loading} 
       />
     </div>

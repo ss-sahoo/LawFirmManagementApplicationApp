@@ -72,7 +72,18 @@ export const API = {
     DETAIL: (id: string) => `/api/join-links/${id}/`,
     DELETE: (id: string) => `/api/join-links/${id}/`,
     GET_DETAILS: (id: string) => `/api/join-links/${id}/details/`,
-    JOIN: (id: string) => `/api/join-links/${id}/join/`
+    JOIN: (id: string) => `/api/join-links/${id}/join//`
+  },
+  CALENDAR: {
+    EVENTS: "/api/calendar/events/",
+    MONTH_VIEW: (year: number, month: number) => `/api/calendar/events/month_view/?year=${year}&month=${month}`,
+    WEEK_VIEW: "/api/calendar/events/week_view/",
+    DAY_VIEW: (date: string) => `/api/calendar/events/day_view/?date=${date}`,
+    TODAY: "/api/calendar/events/today/",
+    UPCOMING: "/api/calendar/events/upcoming/",
+    DETAIL: (id: string) => `/api/calendar/events/${id}/`,
+    MARK_COMPLETED: (id: string) => `/api/calendar/events/${id}/mark_completed/`,
+    CANCEL: (id: string) => `/api/calendar/events/${id}/cancel/`
   }
 };
 

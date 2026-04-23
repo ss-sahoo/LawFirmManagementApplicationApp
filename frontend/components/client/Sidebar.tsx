@@ -16,7 +16,7 @@ const navItems = [
   { label: 'Overview', path: '/client/dashboard', icon: LayoutDashboard },
   { label: 'My Cases', path: '/client/cases', icon: Briefcase },
   { label: 'Documents', path: '/client/documents', icon: FileText },
-  { label: 'Hearings', path: '/client/calendar', icon: Calendar },
+  { label: 'Calendar', path: '/client/calendar', icon: Calendar },
   { label: 'Invoices', path: '/client/invoices', icon: CreditCard },
   { label: 'Messages', path: '/client/messaging', icon: MessageSquare },
 ];

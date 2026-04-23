@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Scale, LayoutDashboard, Briefcase, FileText,
-  UserCheck, Bell, MessageSquare, LogOut, ChevronRight, Users, ChevronDown, User, Settings, X
+  UserCheck, Bell, MessageSquare, LogOut, ChevronRight, Users, ChevronDown, User, Settings, X, Calendar, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTopbar } from '@/components/platform/TopbarContext';
@@ -14,6 +14,7 @@ import { API } from '@/lib/api';
 
 const topNavItems = [
   { label: 'Dashboard', path: '/firm-admin/dashboard', icon: LayoutDashboard },
+  { label: 'Calendar', path: '/firm-admin/calendar', icon: Calendar },
   { label: 'Cases', path: '/firm-admin/cases', icon: Briefcase },
   { label: 'Documents', path: '/firm-admin/documents', icon: FileText },
   { label: 'Drafts', path: '/firm-admin/drafts', icon: UserCheck },
@@ -26,7 +27,7 @@ const userSubItems = [
 ];
 
 const bottomNavItems = [
-  { label: 'Invoices', path: '/firm-admin/invoices', icon: FileText },
+  { label: 'Billing Center', path: '/firm-admin/billing', icon: CreditCard },
   { label: 'Messaging', path: '/firm-admin/messaging', icon: MessageSquare },
 ];
 
