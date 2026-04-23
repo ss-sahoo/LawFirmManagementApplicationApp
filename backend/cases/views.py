@@ -150,3 +150,284 @@ class CaseDraftViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return CaseDraft.objects.filter(case__firm=self.request.user.firm)
+
+
+    # ==================== E-COURTS INTEGRATION ENDPOINTS ====================
+    
+    @action(detail=False, methods=['post'])
+    def import_from_ecourts(self, request):
+        """
+        Import case from E-Courts by CNR number
+        
+        POST /api/cases/import_from_ecourts/
+        {
+            "cnr_number": "DLST020314162024",
+            "court_type": "district-court",  // or "high-court"
+            "client_id": "client-uuid",
+            "assigned_advocate_id": "advocate-uuid"
+        }
+        """
+        from .ecourts import ECourtService
+        from clients.models import Client
+        from accounts.models import CustomUser
+        
+        cnr_number = request.data.get('cnr_number')
+        court_type = request.data.get('court_type', 'district-court')
+        client_id = request.data.get('client_id')
+        advocate_id = request.data.get('assigned_advocate_id')
+        
+        if not cnr_number:
+            return Response({'error': 'CNR number is required'}, status=400)
+        
+        # Fetch from E-Courts
+        ecourt_service = ECourtService()
+        ecourt_response = ecourt_service.get_case_by_cnr(cnr_number, court_type)
+        
+        if not ecourt_response.get('success'):
+            return Response({
+                'error': 'Failed to fetch case from E-Courts',
+                'details': ecourt_response.get('error')
+            }, status=400)
+        
+        # Parse data
+        parsed_data = ecourt_service.parse_case_data(ecourt_response)
+        
+        if not parsed_data:
+            return Response({'error': 'Failed to parse case data'}, status=400)
+        
+        # Create case in our system
+        try:
+            client = Client.objects.get(id=client_id) if client_id else None
+            advocate = CustomUser.objects.get(id=advocate_id) if advocate_id else None
+            
+            case = Case.objects.create(
+                firm=request.user.firm,
+                client=client,
+                assigned_advocate=advocate,
+                case_title=f"{parsed_data.get('case_type', 'Case')} - {parsed_data.get('case_number', '')}",
+                case_number=parsed_data.get('case_number'),
+                cnr_number=parsed_data.get('cnr_number'),
+                case_type=parsed_data.get('case_type', ''),
+                filing_date=parsed_data.get('filing_date'),
+                court_name=parsed_data.get('court_name', ''),
+                court_no=parsed_data.get('court_no', ''),
+                judge_name=parsed_data.get('judge_name', ''),
+                petitioner_name=parsed_data.get('petitioner_name', ''),
+                respondent_name=parsed_data.get('respondent_name', ''),
+                next_hearing_date=parsed_data.get('next_hearing_date'),
+                status='running',
+                category='court_case',
+                district=parsed_data.get('district', ''),
+                state=parsed_data.get('state', ''),
+            )
+            
+            # Calendar event will be auto-created by the save() method
+            
+            serializer = self.get_serializer(case)
+            return Response({
+                'message': 'Case imported successfully from E-Courts',
+                'case': serializer.data
+            }, status=201)
+            
+        except Exception as e:
+            return Response({
+                'error': 'Failed to create case',
+                'details': str(e)
+            }, status=400)
+    
+    @action(detail=False, methods=['post'])
+    def search_ecourts_by_party(self, request):
+        """
+        Search cases in E-Courts by party name
+        
+        POST /api/cases/search_ecourts_by_party/
+        {
+            "name": "Gaurav",
+            "stage": "BOTH",  // BOTH, PENDING, DISPOSED
+            "year": "2024",
+            "district_id": "6f576666",  // optional
+            "complex_id": "5f5f010a"   // optional
+        }
+        """
+        from .ecourts import ECourtService
+        
+        name = request.data.get('name')
+        if not name:
+            return Response({'error': 'Party name is required'}, status=400)
+        
+        stage = request.data.get('stage', 'BOTH')
+        year = request.data.get('year')
+        district_id = request.data.get('district_id')
+        complex_id = request.data.get('complex_id')
+        
+        ecourt_service = ECourtService()
+        result = ecourt_service.search_district_court_by_party(
+            name=name,
+            stage=stage,
+            year=year,
+            district_id=district_id,
+            complex_id=complex_id
+        )
+        
+        if result.get('success'):
+            return Response(result.get('data'))
+        else:
+            return Response({'error': result.get('error')}, status=400)
+    
+    @action(detail=False, methods=['post'])
+    def search_ecourts_by_advocate(self, request):
+        """
+        Search cases in E-Courts by advocate name
+        
+        POST /api/cases/search_ecourts_by_advocate/
+        {
+            "name": "PRATEEK",
+            "stage": "BOTH",
+            "district_id": "6f576666",  // optional
+            "complex_id": "5f5f010a"   // optional
+        }
+        """
+        from .ecourts import ECourtService
+        
+        name = request.data.get('name')
+        if not name:
+            return Response({'error': 'Advocate name is required'}, status=400)
+        
+        stage = request.data.get('stage', 'BOTH')
+        district_id = request.data.get('district_id')
+        complex_id = request.data.get('complex_id')
+        
+        ecourt_service = ECourtService()
+        result = ecourt_service.search_district_court_by_advocate_name(
+            name=name,
+            stage=stage,
+            district_id=district_id,
+            complex_id=complex_id
+        )
+        
+        if result.get('success'):
+            return Response(result.get('data'))
+        else:
+            return Response({'error': result.get('error')}, status=400)
+    
+    @action(detail=False, methods=['post'])
+    def search_ecourts_by_filing_number(self, request):
+        """
+        Search case in E-Courts by filing number
+        
+        POST /api/cases/search_ecourts_by_filing_number/
+        {
+            "filing_number": "581",
+            "filing_year": "2024",
+            "district_id": "6f576666",
+            "complex_id": "5f5f010a"  // optional
+        }
+        """
+        from .ecourts import ECourtService
+        
+        filing_number = request.data.get('filing_number')
+        filing_year = request.data.get('filing_year')
+        district_id = request.data.get('district_id')
+        
+        if not all([filing_number, filing_year, district_id]):
+            return Response({
+                'error': 'filing_number, filing_year, and district_id are required'
+            }, status=400)
+        
+        complex_id = request.data.get('complex_id')
+        
+        ecourt_service = ECourtService()
+        result = ecourt_service.search_district_court_by_filing_number(
+            filing_number=filing_number,
+            filing_year=filing_year,
+            district_id=district_id,
+            complex_id=complex_id
+        )
+        
+        if result.get('success'):
+            return Response(result.get('data'))
+        else:
+            return Response({'error': result.get('error')}, status=400)
+    
+    @action(detail=False, methods=['post'])
+    def get_cause_list(self, request):
+        """
+        Get daily cause list from E-Courts
+        
+        POST /api/cases/get_cause_list/
+        {
+            "date": "20-02-2024",  // DD-MM-YYYY
+            "type": "CRIMINAL",    // CRIMINAL or CIVIL
+            "court_id": "ff886fdc"
+        }
+        """
+        from .ecourts import ECourtService
+        
+        date = request.data.get('date')
+        case_type = request.data.get('type')
+        court_id = request.data.get('court_id')
+        
+        if not all([date, case_type, court_id]):
+            return Response({
+                'error': 'date, type, and court_id are required'
+            }, status=400)
+        
+        ecourt_service = ECourtService()
+        result = ecourt_service.get_district_court_cause_list(
+            date=date,
+            case_type=case_type,
+            court_id=court_id
+        )
+        
+        if result.get('success'):
+            return Response(result.get('data'))
+        else:
+            return Response({'error': result.get('error')}, status=400)
+    
+    @action(detail=True, methods=['post'])
+    def sync_with_ecourts(self, request, pk=None):
+        """
+        Sync case with E-Courts to get latest updates
+        
+        POST /api/cases/{id}/sync_with_ecourts/
+        """
+        from .ecourts import ECourtService
+        
+        case = self.get_object()
+        
+        if not case.cnr_number:
+            return Response({'error': 'Case does not have CNR number'}, status=400)
+        
+        # Determine court type from CNR or case data
+        court_type = 'high-court' if 'HC' in case.cnr_number else 'district-court'
+        
+        ecourt_service = ECourtService()
+        ecourt_response = ecourt_service.get_case_by_cnr(case.cnr_number, court_type)
+        
+        if not ecourt_response.get('success'):
+            return Response({
+                'error': 'Failed to sync with E-Courts',
+                'details': ecourt_response.get('error')
+            }, status=400)
+        
+        # Update case with latest data
+        parsed_data = ecourt_service.parse_case_data(ecourt_response)
+        
+        if parsed_data:
+            # Update fields
+            if parsed_data.get('next_hearing_date'):
+                case.next_hearing_date = parsed_data['next_hearing_date']
+            if parsed_data.get('case_status'):
+                case.status = parsed_data['case_status']
+            if parsed_data.get('judge_name'):
+                case.judge_name = parsed_data['judge_name']
+            
+            case.save()
+            
+            serializer = self.get_serializer(case)
+            return Response({
+                'message': 'Case synced successfully with E-Courts',
+                'case': serializer.data
+            })
+        
+        return Response({'error': 'Failed to parse E-Courts data'}, status=400)

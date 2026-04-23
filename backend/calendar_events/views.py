@@ -43,7 +43,21 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
         elif user.user_type == 'admin':
             if user.firm:
                 queryset = CalendarEvent.objects.filter(firm=user.firm)
-                # TODO: Filter by branch if admin is assigned to specific branch
+                
+                # Filter by branch if admin is assigned to specific branch
+                from accounts.models import UserFirmRole
+                admin_role = UserFirmRole.objects.filter(
+                    user=user, 
+                    firm=user.firm,
+                    is_active=True
+                ).first()
+                
+                if admin_role and admin_role.branch:
+                    # Admin is assigned to specific branch - show only that branch's events
+                    queryset = queryset.filter(
+                        Q(case__branch=admin_role.branch) | Q(case__branch__isnull=True)
+                    )
+                
                 return queryset
             return CalendarEvent.objects.none()
         

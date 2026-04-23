@@ -1,0 +1,206 @@
+{
+  "info": {
+    "name": "E-Courts Integration API",
+    "description": "API endpoints for E-Courts integration in AntLegal",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Import Case from E-Courts",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnr_number\": \"DLST020314162024\",\n  \"court_type\": \"district-court\",\n  \"client_id\": \"{{client_id}}\",\n  \"assigned_advocate_id\": \"{{advocate_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/cases/import_from_ecourts/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cases", "import_from_ecourts", ""]
+        },
+        "description": "Import a case from E-Courts by CNR number"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Search E-Courts by Party Name",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Gaurav\",\n  \"stage\": \"BOTH\",\n  \"year\": \"2024\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/cases/search_ecourts_by_party/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cases", "search_ecourts_by_party", ""]
+        },
+        "description": "Search cases in E-Courts by party name"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Search E-Courts by Advocate Name",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"PRATEEK\",\n  \"stage\": \"PENDING\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/cases/search_ecourts_by_advocate/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cases", "search_ecourts_by_advocate", ""]
+        },
+        "description": "Search cases in E-Courts by advocate name"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Search E-Courts by Filing Number",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filing_number\": \"581\",\n  \"filing_year\": \"2024\",\n  \"district_id\": \"6f576666\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/cases/search_ecourts_by_filing_number/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cases", "search_ecourts_by_filing_number", ""]
+        },
+        "description": "Search case in E-Courts by filing number"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get Cause List (Daily Hearing List)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"20-02-2024\",\n  \"type\": \"CRIMINAL\",\n  \"court_id\": \"ff886fdc\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/cases/get_cause_list/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cases", "get_cause_list", ""]
+        },
+        "description": "Get daily cause list (hearing list) from E-Courts"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Sync Case with E-Courts",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/cases/{{case_id}}/sync_with_ecourts/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "cases", "{{case_id}}", "sync_with_ecourts", ""]
+        },
+        "description": "Sync existing case with E-Courts to get latest updates"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "client-uuid-here",
+      "type": "string"
+    },
+    {
+      "key": "advocate_id",
+      "value": "advocate-uuid-here",
+      "type": "string"
+    },
+    {
+      "key": "case_id",
+      "value": "case-uuid-here",
+      "type": "string"
+    }
+  ]
+}

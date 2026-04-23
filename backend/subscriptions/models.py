@@ -23,9 +23,21 @@ class SubscriptionPlan(models.Model):
     billing_cycle = models.CharField(max_length=20, choices=BILLING_CYCLE_CHOICES, default='monthly')
     
     # Limits
-    max_users = models.IntegerField(default=5, help_text="Maximum number of users allowed")
+    max_advocates = models.IntegerField(default=1, help_text="Maximum number of advocates allowed")
+    max_paralegals = models.IntegerField(default=2, help_text="Maximum number of paralegals allowed")
+    max_admins = models.IntegerField(default=2, help_text="Maximum number of admins allowed")
+    max_users = models.IntegerField(default=5, help_text="Maximum total team members")
+    max_clients = models.IntegerField(default=50, help_text="Maximum number of clients")
     max_cases = models.IntegerField(default=50, help_text="Maximum number of active cases allowed")
     max_storage_gb = models.IntegerField(default=5, help_text="Storage limit in GB")
+    max_branches = models.IntegerField(default=1, help_text="Maximum number of branches")
+    
+    # Feature Flags
+    enable_billing = models.BooleanField(default=True, help_text="Enable billing & invoicing module")
+    enable_calendar = models.BooleanField(default=True, help_text="Enable calendar events")
+    enable_documents = models.BooleanField(default=True, help_text="Enable document management")
+    enable_reports = models.BooleanField(default=False, help_text="Enable advanced reports & analytics")
+    enable_api_access = models.BooleanField(default=False, help_text="Enable API access")
     
     # Features (JSON for flexibility)
     features = models.JSONField(default=dict, help_text="Map of enabled features e.g. {'analytics': true}")
