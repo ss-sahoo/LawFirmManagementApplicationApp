@@ -84,16 +84,16 @@ export default function Topbar() {
           <Menu className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-[#0e2340] leading-tight">{page.title}</h1>
-          <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.sub}</p>
+          <h1 className="text-base font-bold text-[#071526] leading-tight">{page.title}</h1>
+          <p className="text-xs text-gray-700 mt-0.5 hidden sm:block">{page.sub}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
 
         <button className="relative w-9 h-9 rounded-xl bg-[#f7f8fa] border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors">
-          <Bell className="w-4 h-4 text-gray-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c9a96e] border-2 border-white" />
+          <Bell className="w-4 h-4 text-gray-900" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#071526] border-2 border-white" />
         </button>
 
         <div className="w-px h-6 bg-gray-100 mx-1" />
@@ -109,11 +109,11 @@ export default function Topbar() {
                 <img src={userDetails.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0e2340] to-[#1a3a5c] flex items-center justify-center text-white text-xs font-bold shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#071526] to-[#1a3a5c] flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {userDetails.initials}
               </div>
             )}
-            <span className="text-sm font-semibold text-[#0e2340] hidden sm:block max-w-[120px] text-left leading-tight break-words line-clamp-2">{userDetails.name}</span>
+            <span className="text-sm font-semibold text-[#071526] hidden sm:block max-w-[120px] text-left leading-tight break-words line-clamp-2">{userDetails.name}</span>
           </button>
 
           {isProfileOpen && (

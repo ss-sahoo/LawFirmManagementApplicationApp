@@ -222,7 +222,7 @@ export default function PlatformOwnerDashboard() {
                     <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Tooltip content={({ active, payload }) => {
+                <Tooltip content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     return (
                       <div className="bg-[#0e2340] text-white p-4 rounded-2xl shadow-2xl border border-white/10 backdrop-blur-sm">
@@ -343,7 +343,7 @@ export default function PlatformOwnerDashboard() {
                         <Cell key={i} fill={d.color} className="outline-none" />
                       ))}
                     </Pie>
-                    <Tooltip cursor={{ fill: 'transparent' }} content={({ active, payload }) => {
+                    <Tooltip cursor={{ fill: 'transparent' }} content={({ active, payload }: any) => {
                       if (active && payload && payload.length) {
                         return (
                           <div className="bg-[#0e2340] text-white p-3 rounded-2xl shadow-2xl">

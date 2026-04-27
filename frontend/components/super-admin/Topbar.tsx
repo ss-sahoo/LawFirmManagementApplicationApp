@@ -94,7 +94,7 @@ export default function SuperAdminTopbar() {
   const { toggleSidebar } = useTopbar();
 
   return (
-    <header className="h-[72px] bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0 sticky top-0 z-30">
+    <header className="h-[72px] bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0 sticky top-0 z-30 font-sans">
       <div className="flex items-center gap-4">
         <button
           onClick={toggleSidebar}
@@ -103,14 +103,14 @@ export default function SuperAdminTopbar() {
           <Menu className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-[#984c1f] leading-tight">{page.title}</h1>
-          <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.sub}</p>
+          <h1 className="text-base font-bold text-[#5c2d12] leading-tight">{page.title}</h1>
+          <p className="text-xs text-gray-800 mt-0.5 hidden sm:block">{page.sub}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <button className="relative w-9 h-9 rounded-xl bg-[#f7f8fa] border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors">
-          <Bell className="w-4 h-4 text-gray-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#984c1f] border-2 border-white" />
+          <Bell className="w-4 h-4 text-gray-900" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#5c2d12] border-2 border-white" />
         </button>
         <div className="w-px h-6 bg-gray-100 mx-1" />
         {/* Profile Dropdown */}
@@ -124,9 +124,9 @@ export default function SuperAdminTopbar() {
                     <img src={userDetails.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                 </div>
             ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#984c1f] to-[#e68045] flex items-center justify-center text-white text-xs font-bold shrink-0">{userDetails.initials}</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5c2d12] to-[#8c441a] flex items-center justify-center text-white text-xs font-bold shrink-0">{userDetails.initials}</div>
             )}
-            <span className="text-sm font-semibold text-[#984c1f] hidden sm:block max-w-[150px] text-left leading-tight break-words line-clamp-2">{userDetails.name}</span>
+            <span className="text-sm font-semibold text-[#5c2d12] hidden sm:block max-w-[150px] text-left leading-tight break-words line-clamp-2">{userDetails.name}</span>
           </button>
 
           {isProfileOpen && (

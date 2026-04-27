@@ -69,27 +69,27 @@ export default function Sidebar() {
     pathname.startsWith('/platform-owner/sales');
 
   const navRow = (active: boolean) =>
-    `group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#0e2340]/8 text-[#0e2340]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+    `group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#071526]/8 text-[#071526]' : 'text-gray-900 hover:bg-gray-50 hover:text-black'
     }`;
   const iconBox = (active: boolean) =>
-    `w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#0e2340]/10' : 'bg-gray-100 group-hover:bg-gray-200'
+    `w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#071526]/10' : 'bg-gray-100 group-hover:bg-gray-200'
     }`;
   const iconColor = (active: boolean) =>
-    `w-4 h-4 ${active ? 'text-[#0e2340]' : 'text-gray-400 group-hover:text-gray-600'}`;
+    `w-4 h-4 ${active ? 'text-[#071526]' : 'text-gray-700 group-hover:text-gray-900'}`;
 
   const sidebarContent = (
     <aside className="w-64 h-full bg-white border-r border-gray-100 flex flex-col overflow-hidden">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#0e2340] rounded-lg flex items-center justify-center shadow-md">
+          <div className="w-8 h-8 bg-[#071526] rounded-lg flex items-center justify-center shadow-md">
             <Scale className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-lg text-gray-900 tracking-tight">
-            Ant<span className="text-[#0e2340]">Legal</span>
+          <span className="font-bold text-lg text-gray-950 tracking-tight">
+            Ant<span className="text-[#071526]">Legal</span>
           </span>
         </div>
-        <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:text-gray-600">
+        <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-700 hover:text-gray-950">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -97,7 +97,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
         <div className="px-3 mb-3 lg:hidden">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-800">
             Platform Owner
           </span>
         </div>
@@ -109,12 +109,12 @@ export default function Sidebar() {
           return (
             <Link href={path} onClick={closeSidebar}>
               <div className={navRow(active)}>
-                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0e2340]" />}
+                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#071526]" />}
                 <div className="flex items-center gap-3">
                   <div className={iconBox(active)}><Icon className={iconColor(active)} /></div>
                   <span className="text-sm font-semibold">{label}</span>
                 </div>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-[#0e2340]/40" />}
+                {active && <ChevronRight className="w-3.5 h-3.5 text-[#071526]/40" />}
               </div>
             </Link>
           );
@@ -126,12 +126,12 @@ export default function Sidebar() {
           return (
             <Link href="/platform-owner/firms" onClick={closeSidebar}>
               <div className={navRow(active)}>
-                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0e2340]" />}
+                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#071526]" />}
                 <div className="flex items-center gap-3">
                   <div className={iconBox(active)}><Building2 className={iconColor(active)} /></div>
                   <span className="text-sm font-semibold">Firms</span>
                 </div>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-[#0e2340]/40" />}
+                {active && <ChevronRight className="w-3.5 h-3.5 text-[#071526]/40" />}
               </div>
             </Link>
           );
@@ -151,7 +151,7 @@ export default function Sidebar() {
                 className={navRow(userSectionActive) + ' w-full'}
               >
                 {userSectionActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0e2340]" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#071526]" />
                 )}
                 <div className="flex items-center gap-3">
                   <div className={iconBox(userSectionActive)}>
@@ -159,20 +159,20 @@ export default function Sidebar() {
                   </div>
                   <span className="text-sm font-semibold">User Management</span>
                 </div>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${userMenuOpen ? 'rotate-180 text-[#0e2340]' : 'text-gray-300'}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${userMenuOpen ? 'rotate-180 text-[#071526]' : 'text-gray-500'}`} />
               </button>
 
               <div className={`overflow-hidden transition-all duration-300 ease-in-out ${userMenuOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="ml-[22px] mt-1 mb-1 border-l-2 border-[#0e2340]/15 pl-3.5 space-y-0.5">
+                <div className="ml-[22px] mt-1 mb-1 border-l-2 border-[#071526]/15 pl-3.5 space-y-0.5">
                   {userSubItems.map(({ label, path, icon: Icon }) => {
                     const active = pathname.startsWith(path);
                     return (
                       <Link key={path} href={path} onClick={closeSidebar}>
-                        <div className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer ${active ? 'bg-[#0e2340]/8 text-[#0e2340]' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-700'
+                        <div className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer ${active ? 'bg-[#071526]/8 text-[#071526]' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-950'
                           }`}>
-                          <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[#0e2340]' : 'text-gray-300 group-hover:text-gray-500'}`} />
-                          <span className={`text-[13px] font-semibold ${active ? 'text-[#0e2340]' : ''}`}>{label}</span>
-                          {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#0e2340]" />}
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[#071526]' : 'text-gray-600 group-hover:text-gray-900'}`} />
+                          <span className={`text-[13px] font-semibold ${active ? 'text-[#071526]' : ''}`}>{label}</span>
+                          {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#071526]" />}
                         </div>
                       </Link>
                     );
@@ -189,12 +189,12 @@ export default function Sidebar() {
           return (
             <Link key={path} href={path} onClick={closeSidebar}>
               <div className={navRow(active)}>
-                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0e2340]" />}
+                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#071526]" />}
                 <div className="flex items-center gap-3">
                   <div className={iconBox(active)}><Icon className={iconColor(active)} /></div>
                   <span className="text-sm font-semibold">{label}</span>
                 </div>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-[#0e2340]/40" />}
+                {active && <ChevronRight className="w-3.5 h-3.5 text-[#071526]/40" />}
               </div>
             </Link>
           );
@@ -204,7 +204,7 @@ export default function Sidebar() {
           <>
             <div className="my-3 border-t border-gray-100" />
             <div className="px-3 mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Account Context</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-800">Account Context</span>
             </div>
             {[
               { label: 'Profile', path: '/platform-owner/profile', icon: UserCheck },
@@ -214,12 +214,12 @@ export default function Sidebar() {
               return (
                 <Link key={path} href={path} onClick={closeSidebar}>
                   <div className={navRow(active)}>
-                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0e2340]" />}
+                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#071526]" />}
                     <div className="flex items-center gap-3">
                       <div className={iconBox(active)}><Icon className={iconColor(active)} /></div>
                       <span className="text-sm font-semibold">{label}</span>
                     </div>
-                    {active && <ChevronRight className="w-3.5 h-3.5 text-[#0e2340]/40" />}
+                    {active && <ChevronRight className="w-3.5 h-3.5 text-[#071526]/40" />}
                   </div>
                 </Link>
               );
@@ -230,7 +230,7 @@ export default function Sidebar() {
 
       {/* Bottom user card */}
       <div className="border-t border-gray-100 px-4 py-3">
-        <button onClick={handleLogout} className="flex items-center gap-2 text-[#0e2340] hover:opacity-75 transition-opacity">
+        <button onClick={handleLogout} className="flex items-center gap-2 text-[#071526] hover:opacity-75 transition-opacity">
           <LogOut className="w-4 h-4" />
           <span className="text-[15px] font-semibold">Log Out</span>
         </button>

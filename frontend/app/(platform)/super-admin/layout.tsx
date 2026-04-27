@@ -11,7 +11,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           <SuperAdminSidebar />
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             <SuperAdminTopbar />
-            <main className="flex-1 overflow-y-auto p-4 md:p-8 transition-spacing duration-300">
+            <main className="flex-1 overflow-y-auto p-4 md:p-4 transition-spacing duration-300">
               <div className="max-w-[1600px] mx-auto w-full">
                 {children}
               </div>

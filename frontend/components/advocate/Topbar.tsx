@@ -90,13 +90,13 @@ export default function AdvocateTopbar() {
           <Menu className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-[#4a1c40] leading-tight">{page.title}</h1>
-          <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.sub}</p>
+          <h1 className="text-base font-bold text-[#2d0b25] leading-tight">{page.title}</h1>
+          <p className="text-xs text-gray-700 mt-0.5 hidden sm:block">{page.sub}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <button className="relative w-9 h-9 rounded-xl bg-[#f7f8fa] border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors">
-          <Bell className="w-4 h-4 text-gray-500" />
+          <Bell className="w-4 h-4 text-gray-900" />
         </button>
         <div className="w-px h-6 bg-gray-100 mx-1" />
         {/* Profile Dropdown */}
@@ -110,9 +110,9 @@ export default function AdvocateTopbar() {
                     <img src={userDetails.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                 </div>
             ) : (
-                <div className="w-8 h-8 rounded-full bg-[#4a1c40] flex items-center justify-center text-white text-xs font-bold shrink-0">{userDetails.initials}</div>
+                <div className="w-8 h-8 rounded-full bg-[#2d0b25] flex items-center justify-center text-white text-xs font-bold shrink-0">{userDetails.initials}</div>
             )}
-            <span className="text-sm font-semibold text-[#4a1c40] hidden sm:block max-w-[150px] text-left leading-tight break-words line-clamp-2">{userDetails.name}</span>
+            <span className="text-sm font-semibold text-[#2d0b25] hidden sm:block max-w-[150px] text-left leading-tight break-words line-clamp-2">{userDetails.name}</span>
           </button>
 
           {isProfileOpen && (

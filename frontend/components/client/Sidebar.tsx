@@ -83,21 +83,21 @@ export default function ClientSidebar() {
     <aside className="w-64 h-full bg-white border-r border-gray-100 flex flex-col overflow-hidden">
       <div className="px-6 py-6 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#1f2937] rounded-lg flex items-center justify-center shadow-md">
+          <div className="w-8 h-8 bg-[#0f172a] rounded-lg flex items-center justify-center shadow-md">
             <Scale className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-lg text-gray-900 tracking-tight">
-            Client<span className="text-[#1f2937]">Portal</span>
+          <span className="font-bold text-lg text-gray-950 tracking-tight">
+            Client<span className="text-[#0f172a]">Portal</span>
           </span>
         </div>
-        <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:text-gray-600">
+        <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-700 hover:text-gray-950">
           <X className="w-5 h-5" />
         </button>
       </div>
 
       <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
         <div className="px-3 mb-3 lg:hidden">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-800">
             Client
           </span>
         </div>
@@ -106,17 +106,17 @@ export default function ClientSidebar() {
           const active = isActive(path);
           return (
             <Link key={path} href={path} onClick={closeSidebar}>
-              <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#1f2937]/10 text-[#1f2937]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+              <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#0f172a]/10 text-[#0f172a]' : 'text-gray-900 hover:bg-gray-50 hover:text-black'
                 }`}>
-                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#1f2937]" />}
+                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0f172a]" />}
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#1f2937]/15' : 'bg-gray-100 group-hover:bg-gray-200'
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#0f172a]/15' : 'bg-gray-100 group-hover:bg-gray-200'
                     }`}>
-                    <Icon className={`w-4 h-4 ${active ? 'text-[#1f2937]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                    <Icon className={`w-4 h-4 ${active ? 'text-[#0f172a]' : 'text-gray-700 group-hover:text-gray-900'}`} />
                   </div>
                   <span className="text-sm font-semibold">{label}</span>
                 </div>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-[#1f2937]/40" />}
+                {active && <ChevronRight className="w-3.5 h-3.5 text-[#0f172a]/40" />}
               </div>
             </Link>
           );
@@ -126,7 +126,7 @@ export default function ClientSidebar() {
           <>
             <div className="my-3 border-t border-gray-100" />
             <div className="px-3 mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Account Context</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-800">Account Context</span>
             </div>
             {[
               { label: 'Profile', path: '/client/profile', icon: Users },
@@ -135,17 +135,17 @@ export default function ClientSidebar() {
               const active = isActive(path);
               return (
                 <Link key={path} href={path} onClick={closeSidebar}>
-                  <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#1f2937]/10 text-[#1f2937]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active ? 'bg-[#0f172a]/10 text-[#0f172a]' : 'text-gray-900 hover:bg-gray-50 hover:text-black'
                     }`}>
-                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#1f2937]" />}
+                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0f172a]" />}
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#1f2937]/15' : 'bg-gray-100 group-hover:bg-gray-200'
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-[#0f172a]/15' : 'bg-gray-100 group-hover:bg-gray-200'
                         }`}>
-                        <Icon className={`w-4 h-4 ${active ? 'text-[#1f2937]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                        <Icon className={`w-4 h-4 ${active ? 'text-[#0f172a]' : 'text-gray-700 group-hover:text-gray-900'}`} />
                       </div>
                       <span className="text-sm font-semibold">{label}</span>
                     </div>
-                    {active && <ChevronRight className="w-3.5 h-3.5 text-[#1f2937]/40" />}
+                    {active && <ChevronRight className="w-3.5 h-3.5 text-[#0f172a]/40" />}
                   </div>
                 </Link>
               );
@@ -203,12 +203,12 @@ export default function ClientSidebar() {
               </button>
             </div>
             <div className="space-y-4">
-              <div className="bg-[#1f2937]/5 rounded-xl p-4 border border-[#1f2937]/10">
-                <p className="text-sm font-semibold text-[#1f2937] mb-2">Share this link:</p>
+              <div className="bg-[#0f172a]/5 rounded-xl p-4 border border-[#0f172a]/10">
+                <p className="text-sm font-semibold text-[#0f172a] mb-2">Share this link:</p>
                 <div className="bg-white rounded-lg p-3 border border-gray-200 mb-3">
                   <p className="text-sm text-gray-600 break-all font-mono">{`${window.location.origin}/join/${joinLink.id}`}</p>
                 </div>
-                <button onClick={copyLinkToClipboard} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#1f2937] text-white rounded-lg hover:bg-[#111827] transition-colors font-semibold">
+                <button onClick={copyLinkToClipboard} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#0f172a] text-white rounded-lg hover:bg-[#020617] transition-colors font-semibold">
                   <Copy className="w-4 h-4" />
                   Copy Link
                 </button>

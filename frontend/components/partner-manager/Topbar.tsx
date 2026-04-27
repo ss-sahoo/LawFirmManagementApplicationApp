@@ -58,14 +58,14 @@ export default function PartnerManagerTopbar() {
           <Menu className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-[#1a6b4a] leading-tight">{page.title}</h1>
-          <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.sub}</p>
+          <h1 className="text-base font-bold text-[#0d3826] leading-tight">{page.title}</h1>
+          <p className="text-xs text-gray-700 mt-0.5 hidden sm:block">{page.sub}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <button className="relative w-9 h-9 rounded-xl bg-[#f7f8fa] border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors">
-          <Bell className="w-4 h-4 text-gray-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#1a6b4a] border-2 border-white" />
+          <Bell className="w-4 h-4 text-gray-900" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0d3826] border-2 border-white" />
         </button>
         <div className="w-px h-6 bg-gray-100 mx-1" />
         {/* Profile Dropdown */}
@@ -74,8 +74,8 @@ export default function PartnerManagerTopbar() {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center gap-2.5 pl-1 pr-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1a6b4a] to-[#2d9d6e] flex items-center justify-center text-white text-xs font-bold">PM</div>
-            <span className="text-sm font-semibold text-[#1a6b4a] hidden sm:block">Partner Manager</span>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0d3826] to-[#1a6b4a] flex items-center justify-center text-white text-xs font-bold">PM</div>
+            <span className="text-sm font-semibold text-[#0d3826] hidden sm:block">Partner Manager</span>
           </button>
 
           {isProfileOpen && (

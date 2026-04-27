@@ -20,7 +20,7 @@ import { Badge, MetricCard, Panel, SearchBar } from './ui';
 import { TimeEntry } from '@/hooks/useTimeEntries';
 
 interface ProfessionalBillingHubProps {
-  role?: 'super-admin' | 'admin';
+  role?: 'super-admin' | 'admin' | 'advocate';
   isLoading?: boolean;
   entries?: TimeEntry[];
   onAddEntry?: () => void;

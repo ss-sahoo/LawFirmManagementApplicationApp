@@ -3,24 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Eye,
-  EyeOff,
   Mail,
   Lock,
   Scale,
   AlertCircle,
   Star,
-  Briefcase,
-  FileText,
-  Calendar,
   Phone,
+  ChevronRight,
+  Fingerprint,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react';
-
-// Note: You'll need to create or import these hooks/contexts
-// import { useAuthContext } from '../contexts/AuthContext';
-// import DeviceConflictModal from '../components/DeviceConflictModal';
 
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
@@ -32,44 +27,30 @@ export default function LoginPage() {
     email: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginMode, setLoginMode] = useState<'password' | 'code'>('password');
-
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState('');
 
-  // Auto-detect: if the identifier contains '@' it's email, else it's phone
   const isEmailInput = formData.email.includes('@');
-  // Replace with your actual auth hook
-  // const { login, deviceConflict, setDeviceConflict } = useAuthContext();
 
   const getDashboardRoute = (role: string): string => {
     const normalizedRole = role?.toLowerCase();
-
     switch (normalizedRole) {
-      case 'platform_owner':
-        return '/platform-owner/dashboard';
-      case 'partner_manager':
-        return '/partner-manager/dashboard';
+      case 'platform_owner': return '/platform-owner/dashboard';
+      case 'partner_manager': return '/partner-manager/dashboard';
       case 'super_admin':
-      case 'firm_owner':
-        return '/super-admin/dashboard';
+      case 'firm_owner': return '/super-admin/dashboard';
       case 'admin':
-      case 'firm_admin':
-        return '/firm-admin/dashboard';
+      case 'firm_admin': return '/firm-admin/dashboard';
       case 'advocate':
-      case 'lawyer':
-        return '/advocate/dashboard';
-      case 'paralegal':
-        return '/paralegal/dashboard';
-      case 'client':
-        return '/client/dashboard';
-      default:
-        return '/platform-owner/dashboard';
+      case 'lawyer': return '/advocate/dashboard';
+      case 'paralegal': return '/paralegal/dashboard';
+      case 'client': return '/client/dashboard';
+      default: return '/platform-owner/dashboard';
     }
   };
 
@@ -101,11 +82,9 @@ export default function LoginPage() {
         if (!response.ok) {
           let errorMsg = data.detail || data.message;
           if (data.non_field_errors && Array.isArray(data.non_field_errors)) {
-            if (data.non_field_errors.includes("User account is inactive")) {
-              errorMsg = "Your account is inactive please contact your admin for details";
-            } else {
-              errorMsg = data.non_field_errors[0];
-            }
+            errorMsg = data.non_field_errors.includes("User account is inactive")
+              ? "Your account is inactive please contact your admin for details"
+              : data.non_field_errors[0];
           }
           throw new Error(errorMsg || 'Login failed. Please check your credentials.');
         }
@@ -118,29 +97,23 @@ export default function LoginPage() {
 
       } else if (loginMode === 'code') {
         if (!otpSent) {
-          // Request OTP — auto-detect channel from identifier
           if (isEmailInput) {
             const response = await customFetch(API.AUTH.REQUEST_EMAIL_OTP, {
               method: 'POST',
               body: JSON.stringify({ email: formData.email })
             });
             const data = await response.json();
-            if (!response.ok) {
-              throw new Error(data.detail || data.message || 'Failed to send OTP to email.');
-            }
+            if (!response.ok) throw new Error(data.detail || data.message || 'Failed to send OTP to email.');
           } else {
             const response = await customFetch(API.AUTH.REQUEST_PHONE_OTP, {
               method: 'POST',
               body: JSON.stringify({ phone_number: formData.email })
             });
             const data = await response.json();
-            if (!response.ok) {
-              throw new Error(data.detail || data.message || 'Failed to send OTP to phone.');
-            }
+            if (!response.ok) throw new Error(data.detail || data.message || 'Failed to send OTP to phone.');
           }
           setOtpSent(true);
         } else {
-          // Verify OTP — pass email or phone_number based on auto-detection
           const payload = isEmailInput
             ? { email: formData.email, otp_code: otpValue }
             : { phone_number: formData.email, otp_code: otpValue };
@@ -154,18 +127,13 @@ export default function LoginPage() {
           if (!response.ok) {
             let errorMsg = data.detail || data.message || data.error;
             if (data.non_field_errors && Array.isArray(data.non_field_errors)) {
-              if (data.non_field_errors.includes("User account is inactive")) {
-                errorMsg = "Your account is inactive please contact your admin for details";
-              } else {
-                errorMsg = data.non_field_errors[0];
-              }
+              errorMsg = data.non_field_errors.includes("User account is inactive")
+                ? "Your account is inactive please contact your admin for details"
+                : data.non_field_errors[0];
             }
             throw new Error(errorMsg || 'Invalid OTP. Please try again.');
           }
 
-          // Handle both response structures:
-          // Backend v1: { token, user }
-          // Backend v2 (deployed): { success, data: { access, user } }
           const token = data.token || data.data?.access;
           const user = data.user || data.data?.user;
 
@@ -176,180 +144,180 @@ export default function LoginPage() {
           router.push(targetRoute);
         }
       }
-
     } catch (err: any) {
       setError(err.message || 'Process failed. Please verify credentials.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Device conflict handlers (if needed)
-  // const handleSwitchDevice = async () => { ... };
-  // const handleCancelDeviceSwitch = () => { ... };
-
   return (
-    <div className="min-h-screen flex overflow-hidden bg-white">
-      {/* Device Conflict Modal - Uncomment when you have the component */}
-      {/* {deviceConflict && (
-        <DeviceConflictModal
-          isOpen={true}
-          conflictInfo={deviceConflict.conflictInfo}
-          onSwitchDevice={handleSwitchDevice}
-          onCancel={handleCancelDeviceSwitch}
-        />
-      )} */}
-
+    <div className="min-h-screen flex overflow-hidden bg-[#fafafa]">
       {/* LEFT SIDE: Brand & Testimonial */}
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 text-white"
-        style={{
-          backgroundColor: '#1e3a5f',
-          backgroundImage: `
-            radial-gradient(at 0% 0%, #0a2a44 0, transparent 50%), 
-            radial-gradient(at 50% 0%, #2c5a7a 0, transparent 50%), 
-            radial-gradient(at 100% 0%, #1e4a6f 0, transparent 50%)
-          `
-        }}
-      >
-        {/* Abstract Pattern Overlay */}
-        <div className="absolute inset-0 z-0 opacity-10">
-          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <pattern id="legal-pattern" patternUnits="userSpaceOnUse" width="20" height="20">
-              <path d="M10 5 L15 10 L10 15 L5 10 Z" fill="none" stroke="white" strokeWidth="0.5" />
-              <circle cx="10" cy="10" r="1" fill="white" />
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#legal-pattern)" />
-          </svg>
+      <div className="hidden lg:flex lg:w-[45%] relative flex-col justify-between p-16 text-white overflow-hidden">
+        {/* Animated Mesh Gradient Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-[#0f172a]" />
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              rotate: [0, 90, 0],
+              x: [0, 100, 0],
+              y: [0, 50, 0]
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-1/4 -left-1/4 w-[100%] h-[100%] bg-blue-600/20 rounded-full blur-[120px]" 
+          />
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.3, 1],
+              rotate: [0, -45, 0],
+              x: [0, -50, 0],
+              y: [0, -100, 0]
+            }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="absolute -bottom-1/4 -right-1/4 w-[100%] h-[100%] bg-indigo-600/20 rounded-full blur-[120px]" 
+          />
+          <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]" />
+          
+          {/* Subtle Grid Pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" 
+               style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         </div>
 
         {/* Logo Area */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 flex items-center gap-3"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative z-10 flex items-center gap-4"
         >
-          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-            <Scale className="w-5 h-5 text-white" />
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-2xl">
+            <Scale className="w-6 h-6 text-blue-400" />
           </div>
-          <span className="font-bold text-xl tracking-tight">AntLegal</span>
+          <div>
+            <span className="font-bold text-2xl tracking-tight block">AntLegal</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-blue-400/80 font-bold">Premier Legal Suite</span>
+          </div>
         </motion.div>
 
-        {/* Testimonial / Trust Section */}
+        {/* Testimonial Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative z-10 max-w-lg"
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="relative z-10 max-w-lg mb-10"
         >
-          <div
-            className="p-8 rounded-2xl shadow-2xl"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
-            }}
-          >
-            {/* Stars */}
-            <div className="flex gap-1 mb-4 text-yellow-400">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Scale className="w-24 h-24 rotate-12" />
+            </div>
+            
+            <div className="flex gap-1 mb-6">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4" fill="currentColor" />
+                <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
               ))}
             </div>
 
-            <blockquote className="text-lg font-medium leading-relaxed mb-6">
-              "AntLegal has transformed how we run our practice. From case management to client billing, everything is streamlined. Our productivity has increased by 40%."
+            <blockquote className="text-xl font-light leading-relaxed mb-8 italic text-slate-100">
+              "AntLegal has redefined our firm's operational efficiency. The seamless integration of case tracking and billing is truly industry-leading."
             </blockquote>
 
-            <div className="flex items-center gap-4">
-              <img
-                src="https://ui-avatars.com/api/?name=Sarah+Chen&background=1e3a5f&color=fff&bold=true"
-                alt="User"
-                className="w-10 h-10 rounded-full border-2 border-white/20"
-              />
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <img
+                  src={`https://ui-avatars.com/api/?name=Sarah+Chen&background=3b82f6&color=fff&bold=true`}
+                  alt="User"
+                  className="w-14 h-14 rounded-2xl border-2 border-white/20 object-cover shadow-lg"
+                />
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-[#0f172a] rounded-full" />
+              </div>
               <div>
-                <p className="font-bold text-sm">Sarah Chen, Esq.</p>
-                <p className="text-xs text-white/70 uppercase tracking-wider font-semibold">
-                  Managing Partner, Chen & Associates
+                <p className="font-bold text-lg">Sarah Chen, Esq.</p>
+                <p className="text-sm text-slate-400 font-medium">
+                  Managing Partner, Global Legal Group
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="mt-8 grid grid-cols-3 gap-4 opacity-80">
-            <div className="text-center">
-              <div className="text-2xl font-bold">500+</div>
-              <div className="text-xs text-white/70">Law Firms</div>
+          <div className="mt-12 flex items-center gap-12 text-slate-300">
+            <div>
+              <p className="text-3xl font-bold text-white mb-1">500+</p>
+              <p className="text-xs uppercase tracking-widest font-bold text-slate-500">Law Firms</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">10k+</div>
-              <div className="text-xs text-white/70">Cases Managed</div>
+            <div className="w-px h-10 bg-white/10" />
+            <div>
+              <p className="text-3xl font-bold text-white mb-1">10k+</p>
+              <p className="text-xs uppercase tracking-widest font-bold text-slate-500">Active Cases</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">99.9%</div>
-              <div className="text-xs text-white/70">Uptime</div>
+            <div className="w-px h-10 bg-white/10" />
+            <div>
+              <p className="text-3xl font-bold text-white mb-1">99.9%</p>
+              <p className="text-xs uppercase tracking-widest font-bold text-slate-500">Security</p>
             </div>
           </div>
         </motion.div>
 
-        <div className="relative z-10 text-xs text-white/60">
-          © 2026 AntLegal Inc. All rights reserved.
+        <div className="relative z-10 flex items-center gap-6 text-sm font-medium text-slate-500">
+          <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Secure access</span>
+          <span className="flex items-center gap-2"><Globe className="w-4 h-4" /> Multi-region</span>
+          <span className="ml-auto">© 2026 AntLegal</span>
         </div>
       </div>
 
       {/* RIGHT SIDE: Login Form */}
-      <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center items-center p-8 lg:p-12 overflow-y-auto">
+      <div className="w-full lg:w-[55%] bg-white flex flex-col justify-center items-center p-8 lg:p-24 relative">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md space-y-8"
+          className="w-full max-w-[440px] space-y-10"
         >
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 bg-[#1e3a5f] rounded-lg flex items-center justify-center text-white">
-              <Scale className="w-4 h-4" />
+          {/* Mobile Brand */}
+          <div className="lg:hidden flex justify-center mb-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <Scale className="w-5 h-5" />
+              </div>
+              <span className="font-bold text-2xl text-slate-900 tracking-tight">AntLegal</span>
             </div>
-            <span className="font-bold text-lg text-slate-900">AntLegal</span>
           </div>
 
-          {/* Header */}
-          <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
+          <div className="space-y-3">
+            <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-none">
+              Welcome back
+            </h2>
+            <p className="text-slate-500 text-lg font-medium">Please enter your details to sign in.</p>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-3"
-            >
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-4 h-4 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-red-800">Authentication failed</p>
-                <p className="text-sm text-red-600 mt-0.5">{error}</p>
-              </div>
-            </motion.div>
-          )}
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className="bg-red-50/80 backdrop-blur-sm border border-red-100 rounded-2xl p-4 flex items-center gap-4 text-red-700"
+              >
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="text-sm font-semibold">{error}</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Form */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Identifier Input (auto-detects email vs phone) */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-bold text-slate-700 tracking-tight ml-1">
                 {loginMode === 'password' ? 'Username / Email / Phone' : 'Email or Phone Number'}
               </label>
-              <div className={`relative group rounded-lg transition-all duration-200 ${focusedField === 'email' ? 'ring-2 ring-[#1e3a5f]/20' : ''}`}>
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className={`relative group transition-all duration-300 ${focusedField === 'email' ? 'scale-[1.01]' : ''}`}>
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   {isEmailInput ? (
-                    <Mail className={`w-4 h-4 transition-colors ${focusedField === 'email' ? 'text-[#1e3a5f]' : 'text-slate-400'}`} />
+                    <Mail className={`w-5 h-5 transition-colors duration-300 ${focusedField === 'email' ? 'text-blue-600' : 'text-slate-400'}`} />
                   ) : (
-                    <Phone className={`w-4 h-4 transition-colors ${focusedField === 'email' ? 'text-[#1e3a5f]' : 'text-slate-400'}`} />
+                    <Phone className={`w-5 h-5 transition-colors duration-300 ${focusedField === 'email' ? 'text-blue-600' : 'text-slate-400'}`} />
                   )}
                 </div>
                 <input
@@ -363,166 +331,181 @@ export default function LoginPage() {
                   onChange={handleInputChange}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  className={`block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#1e3a5f] transition-all text-sm ${otpSent && loginMode === 'code' ? 'opacity-50 bg-slate-50' : ''}`}
-                  placeholder="attorney@lawfirm.com or +91 98765 43210"
+                  className={`block w-full pl-12 pr-4 py-4 bg-slate-50 border-2 rounded-[1.25rem] text-slate-900 font-semibold placeholder-slate-400 transition-all focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 ${focusedField === 'email' ? 'border-blue-600' : 'border-slate-100'} ${otpSent && loginMode === 'code' ? 'opacity-50 grayscale bg-slate-200' : ''}`}
+                  placeholder="name@lawfirm.com"
                 />
               </div>
-
             </div>
 
-            {/* Password Input OR OTP Message */}
-            {loginMode === 'password' ? (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                    Password
-                  </label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs font-medium text-[#1e3a5f] hover:text-[#0f2b44] transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="!relative">
-                  <PasswordInput
-                    value={formData.password}
-                    onChange={v => setFormData(p => ({ ...p, password: v }))}
-                    required={loginMode === 'password'}
-                    autoComplete="current-password"
-                    className="!pl-11 !bg-white !border-slate-200"
-                  />
-                </div>
-              </div>
-            ) : otpSent ? (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="otp" className="block text-sm font-medium text-slate-700">
-                    Enter Verification Code
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => { setOtpSent(false); setOtpValue(''); setError(''); }}
-                    className="text-xs font-medium text-[#1e3a5f] hover:text-[#0f2b44] transition-colors"
-                  >
-                    Change {isEmailInput ? 'Email' : 'Phone'}?
-                  </button>
-                </div>
-                <div className={`relative group rounded-lg transition-all duration-200 ${focusedField === 'otp' ? 'ring-2 ring-[#1e3a5f]/20' : ''}`}>
-                  <input
-                    id="otp"
-                    name="otp"
-                    type="text"
-                    required
-                    value={otpValue}
-                    onChange={(e) => { setOtpValue(e.target.value); setError(''); }}
-                    onFocus={() => setFocusedField('otp')}
-                    onBlur={() => setFocusedField(null)}
-                    className="block w-full px-3 py-2.5 border border-slate-200 rounded-lg text-center tracking-[0.5em] text-lg font-mono text-slate-900 placeholder-slate-300 focus:outline-none focus:border-[#1e3a5f] transition-all uppercase"
-                    placeholder="123456"
-                    maxLength={6}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-slate-600 font-medium pb-2 text-center">
-                Enter your email or phone number above. A verification code will be sent automatically.
-              </div>
-            )}
-
-            {/* Primary Submit Button */}
-            <div>
-              <motion.button
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.99 }}
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Processing...
+            <AnimatePresence mode="wait">
+              {loginMode === 'password' ? (
+                <motion.div
+                  key="password-field"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center justify-between ml-1">
+                    <label htmlFor="password" className="block text-sm font-bold text-slate-700 tracking-tight">
+                      Password
+                    </label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
-                ) : (
-                  loginMode === 'password' ? 'Sign in' : 
-                  otpSent ? 'Verify code & Sign in' : 'Send sign-in code'
-                )}
-              </motion.button>
-            </div>
+                  <div className="relative">
+                    <PasswordInput
+                      value={formData.password}
+                      onChange={v => setFormData(p => ({ ...p, password: v }))}
+                      required={loginMode === 'password'}
+                      autoComplete="current-password"
+                      className="!pl-12 !py-4 !h-[60px] !bg-slate-50 !border-2 !border-slate-100 !rounded-[1.25rem] focus:!border-blue-600 focus:!bg-white focus:!ring-4 focus:!ring-blue-600/5 transition-all !font-semibold"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Lock className="w-5 h-5 text-slate-400" />
+                    </div>
+                  </div>
+                </motion.div>
+              ) : otpSent ? (
+                <motion.div
+                  key="otp-field"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center justify-between ml-1">
+                    <label htmlFor="otp" className="block text-sm font-bold text-slate-700 tracking-tight">
+                      Verification Code
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => { setOtpSent(false); setOtpValue(''); setError(''); }}
+                      className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1"
+                    >
+                      Change {isEmailInput ? 'Email' : 'Phone'}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="otp"
+                      name="otp"
+                      type="text"
+                      required
+                      value={otpValue}
+                      onChange={(e) => { setOtpValue(e.target.value); setError(''); }}
+                      className="block w-full px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-center tracking-[1em] text-2xl font-black text-slate-900 placeholder-slate-200 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/5 transition-all uppercase"
+                      placeholder="••••••"
+                      maxLength={6}
+                    />
+                  </div>
+                  <p className="text-center text-sm font-bold text-slate-400">
+                    A 6-digit code has been sent to your {isEmailInput ? 'email' : 'phone'}
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="otp-info"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-5 bg-blue-50/50 border border-blue-100 rounded-[1.25rem] flex items-start gap-4"
+                >
+                  <Fingerprint className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
+                  <p className="text-sm text-blue-900 font-medium leading-relaxed">
+                    Enter your {isEmailInput ? 'email' : 'phone'} and we'll send a secure one-time password to your inbox or device.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Divider */}
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink-0 mx-4 text-slate-500 text-sm font-medium">OR</span>
-              <div className="flex-grow border-t border-slate-200"></div>
-            </div>
-
-            {/* Secondary Toggle Button */}
-            <div>
-              <button
-                type="button"
-                className="w-full flex justify-center py-3 px-4 border border-transparent bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold text-slate-700 transition-colors"
-                onClick={() => { setLoginMode(loginMode === 'password' ? 'code' : 'password'); setOtpSent(false); setOtpValue(''); setError(''); }}
-              >
-                {loginMode === 'password' ? 'Use a sign-in code' : 'Use password'}
-              </button>
-            </div>
+            <motion.button
+              whileHover={{ scale: 1.01, boxShadow: '0 20px 40px -10px rgba(37, 99, 235, 0.3)' }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={loading}
+              className="w-full relative overflow-hidden group py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.25rem] font-extrabold text-lg transition-all shadow-xl shadow-blue-600/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Signing in...</span>
+                </div>
+              ) : (
+                <>
+                  <span>
+                    {loginMode === 'password' ? 'Sign in to dashboard' : 
+                     otpSent ? 'Complete sign in' : 'Send verification code'}
+                  </span>
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </motion.button>
           </form>
 
-          {/* Contextual Secondary Links & Layout */}
-          <div className="mt-6 flex flex-col items-center sm:items-start gap-4">
-            {loginMode === 'code' && (
-              <div className="w-full text-center">
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-slate-100"></div>
+            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-black uppercase tracking-widest">OR</span>
+            <div className="flex-grow border-t border-slate-100"></div>
+          </div>
 
-              </div>
+          <button
+            type="button"
+            className="w-full py-4 bg-slate-50 hover:bg-slate-100 border-2 border-transparent hover:border-slate-200 rounded-[1.25rem] text-sm font-extrabold text-slate-700 transition-all flex items-center justify-center gap-3"
+            onClick={() => { setLoginMode(loginMode === 'password' ? 'code' : 'password'); setOtpSent(false); setOtpValue(''); setError(''); }}
+          >
+            {loginMode === 'password' ? (
+              <>
+                <Fingerprint className="w-5 h-5 text-slate-600" />
+                Sign in with OTP
+              </>
+            ) : (
+              <>
+                <Lock className="w-5 h-5 text-slate-600" />
+                Sign in with Password
+              </>
             )}
+          </button>
 
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded cursor-pointer"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer">
-                Remember me
-              </label>
+          <div className="pt-6 border-t border-slate-100 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-5 h-5 text-blue-600 focus:ring-blue-600 rounded-lg cursor-pointer accent-blue-600"
+                />
+                <label htmlFor="remember-me" className="text-sm text-slate-600 font-bold hover:text-slate-900 cursor-pointer transition-colors">
+                  Keep me signed in
+                </label>
+              </div>
+              <p className="text-sm font-bold text-slate-500">
+                New user? {' '}
+                <Link href="/register" className="text-blue-600 hover:underline">Create account</Link>
+              </p>
             </div>
 
-            <div className="text-sm text-slate-600 mt-2">
-              New to AntLegal?{' '}
-              <Link href="/register" className="font-semibold text-slate-900 hover:underline transition-colors">
-                Sign up now.
-              </Link>
-            </div>
-
-            <div className="text-xs text-slate-400 max-w-sm leading-relaxed mt-2">
-              This page is protected by Google reCAPTCHA to ensure you're not a bot.
+            <div className="bg-slate-50/50 rounded-2xl p-4 flex gap-3">
+              <ShieldCheck className="w-5 h-5 text-slate-400 flex-shrink-0" />
+              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                This secure portal is protected by industry-standard encryption and security protocols. 
+                By signing in, you agree to our <Link href="/terms" className="underline">Terms</Link> and <Link href="/privacy" className="underline">Privacy Policy</Link>.
+              </p>
             </div>
           </div>
         </motion.div>
 
-        {/* Footer Links */}
-        <div className="mt-8 text-center">
-          <div className="flex justify-center gap-6 text-xs text-slate-400">
-            <Link href="/privacy" className="hover:text-slate-600 transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-slate-600 transition-colors">Terms of Service</Link>
-            <Link href="/help" className="hover:text-slate-600 transition-colors">Help Center</Link>
-          </div>
-          <p className="mt-2 text-xs text-slate-400">
-            Powered by{' '}
-            <a
-              href="http://anthemgt.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-[#1e3a5f] hover:text-[#0f2b44] transition-colors"
-            >
-              Anthem
-            </a>
-          </p>
+        {/* Floating Credit */}
+        <div className="absolute bottom-10 left-0 right-0 text-center flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition-opacity">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Powered by</p>
+          <a href="http://anthemgt.com/" target="_blank" rel="noreferrer" className="font-black text-slate-900 text-sm tracking-tighter hover:text-blue-600 transition-colors">ANTHEM</a>
         </div>
       </div>
     </div>

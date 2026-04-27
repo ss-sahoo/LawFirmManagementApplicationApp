@@ -42,21 +42,21 @@ export default function ParalegalSidebar() {
     <aside className="w-64 h-full bg-white border-r border-gray-100 flex flex-col overflow-hidden">
       <div className="px-6 py-6 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#0a6c74] rounded-lg flex items-center justify-center shadow-md">
+          <div className="w-8 h-8 bg-[#053b40] rounded-lg flex items-center justify-center shadow-md">
             <Scale className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-lg text-gray-900 tracking-tight">
-            Para<span className="text-[#0a6c74]">legal</span>
+          <span className="font-bold text-lg text-gray-950 tracking-tight">
+            Para<span className="text-[#053b40]">Legal</span>
           </span>
         </div>
-        <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-400 hover:text-gray-600">
+        <button onClick={closeSidebar} className="lg:hidden p-2 text-gray-700 hover:text-gray-950">
           <X className="w-5 h-5" />
         </button>
       </div>
 
       <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
         <div className="px-3 mb-3 lg:hidden">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-800">
             Paralegal
           </span>
         </div>
@@ -66,18 +66,18 @@ export default function ParalegalSidebar() {
           return (
             <Link key={path} href={path} onClick={closeSidebar}>
               <div className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${
-                active ? 'bg-[#0a6c74]/10 text-[#0a6c74]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                active ? 'bg-[#053b40]/10 text-[#053b40]' : 'text-gray-900 hover:bg-gray-50 hover:text-black'
               }`}>
-                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#0a6c74]" />}
+                {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#053b40]" />}
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                    active ? 'bg-[#0a6c74]/15' : 'bg-gray-100 group-hover:bg-gray-200'
+                    active ? 'bg-[#053b40]/15' : 'bg-gray-100 group-hover:bg-gray-200'
                   }`}>
-                    <Icon className={`w-4 h-4 ${active ? 'text-[#0a6c74]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                    <Icon className={`w-4 h-4 ${active ? 'text-[#053b40]' : 'text-gray-700 group-hover:text-gray-900'}`} />
                   </div>
                   <span className="text-sm font-semibold">{label}</span>
                 </div>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-[#0a6c74]/40" />}
+                {active && <ChevronRight className="w-3.5 h-3.5 text-[#053b40]/40" />}
               </div>
             </Link>
           );

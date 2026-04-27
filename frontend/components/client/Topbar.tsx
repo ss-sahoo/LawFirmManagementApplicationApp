@@ -114,16 +114,16 @@ export default function ClientTopbar() {
           <Menu className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-[#1f2937] leading-tight">{page.title}</h1>
-          <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.sub}</p>
+          <h1 className="text-base font-bold text-[#0f172a] leading-tight">{page.title}</h1>
+          <p className="text-xs text-gray-700 mt-0.5 hidden sm:block">{page.sub}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         {/* Bell */}
         <button className="relative w-9 h-9 rounded-xl bg-[#f7f8fa] border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors">
-          <Bell className="w-4 h-4 text-gray-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#1f2937] border-2 border-white" />
+          <Bell className="w-4 h-4 text-gray-900" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0f172a] border-2 border-white" />
         </button>
 
         <div className="w-px h-6 bg-gray-100" />
@@ -140,13 +140,13 @@ export default function ClientTopbar() {
                 <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1f2937] to-[#4b5563] flex items-center justify-center text-white text-xs font-bold shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0f172a] to-[#4b5563] flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {initials || 'C'}
               </div>
             )}
             {/* Name */}
             {userName && (
-              <span className="text-sm font-semibold text-[#1f2937] hidden sm:block max-w-[150px] text-left leading-tight break-words line-clamp-1">
+              <span className="text-sm font-semibold text-[#0f172a] hidden sm:block max-w-[150px] text-left leading-tight break-words line-clamp-1">
                 {userName}
               </span>
             )}
