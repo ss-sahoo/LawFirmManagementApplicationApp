@@ -319,31 +319,31 @@ class PlatformInvoiceViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        # Only platform owner can create invoices
         if self.request.user.user_type != 'platform_owner':
             raise permissions.PermissionDenied('Only Platform Owner can create platform invoices')
-        
-        # Generate invoice number
-        last_invoice = PlatformInvoice.objects.order_by('-created_at').first()
-        
-        if last_invoice and last_invoice.invoice_number:
-            try:
-                # Extract number from format: PLAT-2024-001
-                parts = last_invoice.invoice_number.split('-')
-                if len(parts) == 3:
-                    last_num = int(parts[2])
-                    invoice_number = f"PLAT-{timezone.now().year}-{last_num + 1:03d}"
-                else:
+
+        # Use provided invoice_number or auto-generate
+        invoice_number = self.request.data.get('invoice_number', '').strip()
+        if not invoice_number:
+            last_invoice = PlatformInvoice.objects.order_by('-created_at').first()
+            if last_invoice and last_invoice.invoice_number:
+                try:
+                    parts = last_invoice.invoice_number.split('-')
+                    if len(parts) == 3:
+                        last_num = int(parts[2])
+                        invoice_number = f"PLAT-{timezone.now().year}-{last_num + 1:03d}"
+                    else:
+                        invoice_number = f"PLAT-{timezone.now().year}-001"
+                except:
                     invoice_number = f"PLAT-{timezone.now().year}-001"
-            except:
+            else:
                 invoice_number = f"PLAT-{timezone.now().year}-001"
-        else:
-            invoice_number = f"PLAT-{timezone.now().year}-001"
-        
-        serializer.save(
-            invoice_number=invoice_number,
-            created_by=self.request.user
-        )
+
+        if PlatformInvoice.objects.filter(invoice_number=invoice_number).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'invoice_number': f'Invoice number "{invoice_number}" already exists.'})
+
+        serializer.save(invoice_number=invoice_number, created_by=self.request.user)
     
     def perform_update(self, serializer):
         # Only platform owner can update invoices

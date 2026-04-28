@@ -200,35 +200,38 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        # Generate invoice number
         firm = self.request.user.firm
-        last_invoice = Invoice.objects.filter(firm=firm).order_by('-created_at').first()
-        
-        if last_invoice and last_invoice.invoice_number:
-            try:
-                last_num = int(last_invoice.invoice_number.split('-')[-1])
-                invoice_number = f"INV-{firm.firm_code}-{last_num + 1:05d}"
-            except:
+
+        # Use provided invoice_number or auto-generate
+        invoice_number = self.request.data.get('invoice_number', '').strip()
+        if not invoice_number:
+            last_invoice = Invoice.objects.filter(firm=firm).order_by('-created_at').first()
+            if last_invoice and last_invoice.invoice_number:
+                try:
+                    last_num = int(last_invoice.invoice_number.split('-')[-1])
+                    invoice_number = f"INV-{firm.firm_code}-{last_num + 1:05d}"
+                except:
+                    invoice_number = f"INV-{firm.firm_code}-00001"
+            else:
                 invoice_number = f"INV-{firm.firm_code}-00001"
-        else:
-            invoice_number = f"INV-{firm.firm_code}-00001"
-        
-        # Auto-assign branch from case or user
+
+        # Check uniqueness
+        if Invoice.objects.filter(invoice_number=invoice_number).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'invoice_number': f'Invoice number "{invoice_number}" already exists.'})
+
         invoice_data = {
             'firm': firm,
             'invoice_number': invoice_number,
             'created_by': self.request.user
         }
-        
-        # If case is provided, get branch from case
+
         case = serializer.validated_data.get('case')
         if case and case.branch:
             invoice_data['branch'] = case.branch
-        # Otherwise, if user has branch, use that
         elif hasattr(self.request.user, 'branch') and self.request.user.branch:
             invoice_data['branch'] = self.request.user.branch
-        
-        # New invoices start with zero totals; time entries/expenses are added after
+
         invoice_data.setdefault('total_amount', Decimal('0'))
         invoice_data.setdefault('balance_due', Decimal('0'))
 
@@ -519,28 +522,29 @@ class AdvocateInvoiceViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        # Only advocates can create their own invoices
         if self.request.user.user_type != 'advocate':
             raise PermissionDenied('Only advocates can create advocate invoices')
-        
-        # Generate invoice number
+
         firm = self.request.user.firm
-        last_invoice = AdvocateInvoice.objects.filter(firm=firm).order_by('-created_at').first()
-        
-        if last_invoice and last_invoice.invoice_number:
-            try:
-                last_num = int(last_invoice.invoice_number.split('-')[-1])
-                invoice_number = f"ADV-{firm.firm_code}-{last_num + 1:05d}"
-            except:
+
+        # Use provided invoice_number or auto-generate
+        invoice_number = self.request.data.get('invoice_number', '').strip()
+        if not invoice_number:
+            last_invoice = AdvocateInvoice.objects.filter(firm=firm).order_by('-created_at').first()
+            if last_invoice and last_invoice.invoice_number:
+                try:
+                    last_num = int(last_invoice.invoice_number.split('-')[-1])
+                    invoice_number = f"ADV-{firm.firm_code}-{last_num + 1:05d}"
+                except:
+                    invoice_number = f"ADV-{firm.firm_code}-00001"
+            else:
                 invoice_number = f"ADV-{firm.firm_code}-00001"
-        else:
-            invoice_number = f"ADV-{firm.firm_code}-00001"
-        
-        serializer.save(
-            firm=firm,
-            advocate=self.request.user,
-            invoice_number=invoice_number
-        )
+
+        if AdvocateInvoice.objects.filter(invoice_number=invoice_number).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'invoice_number': f'Invoice number "{invoice_number}" already exists.'})
+
+        serializer.save(firm=firm, advocate=self.request.user, invoice_number=invoice_number)
     
     def perform_update(self, serializer):
         instance = self.get_object()
