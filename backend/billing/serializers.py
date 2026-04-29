@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from decimal import Decimal
 from .models import TimeEntry, Expense, Invoice, Payment, TrustAccount, AdvocateInvoice
 from accounts.serializers import UserBriefSerializer
 
@@ -18,7 +19,6 @@ class TimeEntrySerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'firm', 'amount', 'created_at', 'updated_at']
     
     def create(self, validated_data):
-        # Set hourly_rate from user if not provided
         if 'hourly_rate' not in validated_data:
             user = validated_data['user']
             validated_data['hourly_rate'] = user.hourly_rate or 0
@@ -38,6 +38,36 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'receipt', 'notes', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'firm', 'billable_amount', 'created_at', 'updated_at']
+
+
+# --- Inline serializers for nested invoice creation ---
+
+class InvoiceTimeEntryInlineSerializer(serializers.Serializer):
+    """Inline time entry for creating alongside an invoice"""
+    date = serializers.DateField(required=False, default=None)
+    activity_type = serializers.ChoiceField(
+        choices=[c[0] for c in TimeEntry.ACTIVITY_TYPE_CHOICES],
+        default='other'
+    )
+    description = serializers.CharField()
+    hours = serializers.DecimalField(max_digits=5, decimal_places=2)
+    hourly_rate = serializers.DecimalField(max_digits=10, decimal_places=2)
+    billable = serializers.BooleanField(default=True)
+    notes = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class InvoiceExpenseInlineSerializer(serializers.Serializer):
+    """Inline expense for creating alongside an invoice"""
+    date = serializers.DateField(required=False, default=None)
+    expense_type = serializers.ChoiceField(
+        choices=[c[0] for c in Expense.EXPENSE_TYPE_CHOICES],
+        default='other'
+    )
+    description = serializers.CharField()
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    billable = serializers.BooleanField(default=True)
+    markup_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, default=0)
+    notes = serializers.CharField(required=False, allow_blank=True, default='')
 
 
 class InvoiceListSerializer(serializers.ModelSerializer):
@@ -67,6 +97,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
     time_entries_detail = TimeEntrySerializer(source='time_entries', many=True, read_only=True)
     expenses_detail = ExpenseSerializer(source='expenses', many=True, read_only=True)
 
+    # Write-only nested inputs for inline creation
+    time_entries = InvoiceTimeEntryInlineSerializer(many=True, write_only=True, required=False)
+    expenses = InvoiceExpenseInlineSerializer(many=True, write_only=True, required=False)
+
     class Meta:
         model = Invoice
         fields = [
@@ -78,6 +112,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'notes', 'internal_notes', 'terms_and_conditions',
             'pdf_file', 'sent_date', 'viewed_date',
             'created_by', 'created_by_name',
+            'time_entries', 'expenses',
             'time_entries_detail', 'expenses_detail',
             'created_at', 'updated_at'
         ]
@@ -86,12 +121,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
 
-    def _calculate_amounts(self, validated_data):
-        from decimal import Decimal
-        subtotal = validated_data.get('subtotal', Decimal('0'))
-        tax_percentage = validated_data.get('tax_percentage', Decimal('0'))
-        discount_amount = validated_data.get('discount_amount', Decimal('0'))
-        paid_amount = validated_data.get('paid_amount', Decimal('0'))
+    def _calculate_amounts(self, validated_data, instance=None):
+        subtotal = validated_data.get('subtotal', getattr(instance, 'subtotal', Decimal('0')) or Decimal('0'))
+        tax_percentage = validated_data.get('tax_percentage', getattr(instance, 'tax_percentage', Decimal('0')) or Decimal('0'))
+        discount_amount = validated_data.get('discount_amount', getattr(instance, 'discount_amount', Decimal('0')) or Decimal('0'))
+        paid_amount = validated_data.get('paid_amount', getattr(instance, 'paid_amount', Decimal('0')) or Decimal('0'))
 
         tax_amount = subtotal * (tax_percentage / 100)
         total_amount = subtotal + tax_amount - discount_amount
@@ -103,11 +137,77 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return validated_data
 
     def create(self, validated_data):
+        from django.utils import timezone as tz
+        time_entries_data = validated_data.pop('time_entries', [])
+        expenses_data = validated_data.pop('expenses', [])
+
+        # If no subtotal provided, calculate from inline items
+        if 'subtotal' not in validated_data or not validated_data.get('subtotal'):
+            time_total = sum(
+                (item['hours'] * item['hourly_rate'])
+                for item in time_entries_data if item.get('billable', True)
+            )
+            expense_total = sum(
+                (item['amount'] * (1 + item.get('markup_percentage', 0) / 100))
+                for item in expenses_data if item.get('billable', True)
+            )
+            validated_data['subtotal'] = time_total + expense_total
+
         validated_data = self._calculate_amounts(validated_data)
-        return super().create(validated_data)
+        invoice = super().create(validated_data)
+
+        today = tz.now().date()
+        firm = invoice.firm
+        user = self.context['request'].user
+
+        # Create linked time entries
+        for entry in time_entries_data:
+            hours = entry['hours']
+            rate = entry['hourly_rate']
+            TimeEntry.objects.create(
+                invoice=invoice,
+                firm=firm,
+                user=user,
+                case=invoice.case,
+                date=entry.get('date') or today,
+                activity_type=entry.get('activity_type', 'other'),
+                description=entry['description'],
+                hours=hours,
+                hourly_rate=rate,
+                amount=hours * rate,
+                billable=entry.get('billable', True),
+                notes=entry.get('notes', ''),
+                status='invoiced',
+            )
+
+        # Create linked expenses
+        for exp in expenses_data:
+            amount = exp['amount']
+            markup = exp.get('markup_percentage', Decimal('0'))
+            billable_amount = amount * (1 + markup / 100)
+            Expense.objects.create(
+                invoice=invoice,
+                firm=firm,
+                submitted_by=user,
+                case=invoice.case,
+                date=exp.get('date') or today,
+                expense_type=exp.get('expense_type', 'other'),
+                description=exp['description'],
+                amount=amount,
+                markup_percentage=markup,
+                billable_amount=billable_amount,
+                billable=exp.get('billable', True),
+                notes=exp.get('notes', ''),
+                status='invoiced',
+            )
+
+        return invoice
 
     def update(self, instance, validated_data):
-        validated_data = self._calculate_amounts(validated_data)
+        # Remove nested fields on update — use separate endpoints for line items
+        validated_data.pop('time_entries', None)
+        validated_data.pop('expenses', None)
+        validated_data = self._calculate_amounts(validated_data, instance=instance)
         return super().update(instance, validated_data)
 
 
