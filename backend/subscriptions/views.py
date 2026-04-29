@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from django.db.models import Q, Sum
 from .models import SubscriptionPlan, FirmSubscription, PlatformInvoice
@@ -320,7 +321,7 @@ class PlatformInvoiceViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         if self.request.user.user_type != 'platform_owner':
-            raise permissions.PermissionDenied('Only Platform Owner can create platform invoices')
+            raise PermissionDenied('Only Platform Owner can create platform invoices')
 
         # Use provided invoice_number or auto-generate
         invoice_number = self.request.data.get('invoice_number', '').strip()
@@ -348,23 +349,23 @@ class PlatformInvoiceViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         # Only platform owner can update invoices
         if self.request.user.user_type != 'platform_owner':
-            raise permissions.PermissionDenied('Only Platform Owner can update platform invoices')
+            raise PermissionDenied('Only Platform Owner can update platform invoices')
         
         # Cannot update paid invoices
         instance = self.get_object()
         if instance.status == 'paid':
-            raise permissions.PermissionDenied('Cannot update paid invoices')
+            raise PermissionDenied('Cannot update paid invoices')
         
         serializer.save()
     
     def perform_destroy(self, instance):
         # Only platform owner can delete invoices
         if self.request.user.user_type != 'platform_owner':
-            raise permissions.PermissionDenied('Only Platform Owner can delete platform invoices')
+            raise PermissionDenied('Only Platform Owner can delete platform invoices')
         
         # Cannot delete paid invoices
         if instance.status == 'paid':
-            raise permissions.PermissionDenied('Cannot delete paid invoices')
+            raise PermissionDenied('Cannot delete paid invoices')
         
         instance.delete()
     
