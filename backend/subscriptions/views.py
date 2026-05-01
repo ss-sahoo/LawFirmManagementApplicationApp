@@ -40,6 +40,8 @@ class FirmSubscriptionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.user_type == 'platform_owner':
             return FirmSubscription.objects.all()
+        if not user.firm:
+            return FirmSubscription.objects.none()
         # Firm members can only see their own firm's subscription
         return FirmSubscription.objects.filter(firm=user.firm)
 
