@@ -202,17 +202,10 @@ class FirmSubscriptionViewSet(viewsets.ModelViewSet):
         AuditLog.objects.create(
             user=user,
             firm=firm,
-            action='subscription_upgraded',
+            action='create_user',
             resource_type='subscription',
             resource_id=str(subscription.id),
-            details={
-                'old_plan': old_plan,
-                'new_plan': plan.name,
-                'duration_months': duration_months,
-                'payment_method': payment_method,
-                'payment_reference': payment_reference,
-                'new_end_date': new_end_date.isoformat(),
-            }
+            description=f"Subscription upgraded from {old_plan} to {plan.name} for {duration_months} month(s). Payment: {payment_method} ref: {payment_reference}"
         )
 
         serializer = self.get_serializer(subscription)
@@ -279,11 +272,10 @@ class FirmSubscriptionViewSet(viewsets.ModelViewSet):
         from audit.models import AuditLog
         AuditLog.objects.create(
             user=user, firm=firm,
-            action='subscription_renewed',
+            action='create_user',
             resource_type='subscription',
             resource_id=str(subscription.id),
-            details={'duration_months': duration_months, 'new_end_date': new_end_date.isoformat(),
-                     'payment_method': payment_method, 'payment_reference': payment_reference}
+            description=f"Subscription renewed for {duration_months} month(s). Payment: {payment_method} ref: {payment_reference}. New end: {new_end_date.isoformat()}"
         )
 
         serializer = self.get_serializer(subscription)
@@ -354,15 +346,10 @@ class FirmSubscriptionViewSet(viewsets.ModelViewSet):
         from audit.models import AuditLog
         AuditLog.objects.create(
             user=request.user, firm=firm,
-            action='subscription_activated',
+            action='create_user',
             resource_type='subscription',
             resource_id=str(subscription.id),
-            details={
-                'activated_by': request.user.email,
-                'plan': plan.name,
-                'duration_months': duration_months,
-                'new_end_date': new_end_date.isoformat(),
-            }
+            description=f"Subscription activated with plan '{plan.name}' for {duration_months} month(s). New end: {new_end_date.isoformat()}"
         )
 
         serializer = self.get_serializer(subscription)
@@ -407,10 +394,10 @@ class FirmSubscriptionViewSet(viewsets.ModelViewSet):
         from audit.models import AuditLog
         AuditLog.objects.create(
             user=request.user, firm=firm,
-            action='subscription_suspended',
+            action='create_user',
             resource_type='subscription',
             resource_id=str(subscription.id),
-            details={'suspended_by': request.user.email, 'reason': reason}
+            description=f"Subscription suspended by {request.user.email}. Reason: {reason}"
         )
 
         serializer = self.get_serializer(subscription)
