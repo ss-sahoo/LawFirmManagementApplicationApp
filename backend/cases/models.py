@@ -60,8 +60,17 @@ class Case(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='cases')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, null=True, blank=True, related_name='cases')
     branch = models.ForeignKey('firms.Branch', on_delete=models.SET_NULL, null=True, blank=True, related_name='cases')
+    # For solo advocates not under any law firm
+    solo_advocate = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='solo_cases',
+        help_text="Set when case is created by an advocate not under any law firm"
+    )
     client = models.ForeignKey('clients.Client', on_delete=models.CASCADE, related_name='cases')
     
     assigned_advocate = models.ForeignKey(
@@ -214,7 +223,7 @@ class Case(models.Model):
                 end_datetime=end_datetime,
                 location=location,
                 court_name=self.court_name or "",
-                firm=self.firm,
+                firm=self.firm,  # May be None for solo advocate cases
                 case=self,
                 client=self.client,
                 created_by=None,  # System-generated

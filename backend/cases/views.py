@@ -26,8 +26,14 @@ class CaseViewSet(viewsets.ModelViewSet):
         queryset = Case.objects.all()
         
         if user.user_type != 'platform_owner':
-            # Firm-specific filtering
-            queryset = queryset.filter(firm=user.firm)
+            if user.firm:
+                # Firm-based: filter by firm
+                queryset = queryset.filter(firm=user.firm)
+            elif user.user_type == 'advocate':
+                # Solo advocate: only their own cases
+                queryset = queryset.filter(solo_advocate=user)
+            else:
+                queryset = queryset.none()
         
         # Filter for clients - only show their own cases
         if user.user_type == 'client':
@@ -72,33 +78,52 @@ class CaseViewSet(viewsets.ModelViewSet):
         allowed_roles = ['advocate', 'admin', 'super_admin', 'platform_owner']
         if user.user_type not in allowed_roles:
             raise PermissionDenied("You do not have permission to create cases.")
-            
-        # 2. Extract assignment data
-        advocate = serializer.validated_data.get('assigned_advocate')
-        branch = serializer.validated_data.get('branch')
-        client = serializer.validated_data.get('client')
         
-        # 3. Validation: Advocate must belong to the same firm
-        if advocate and advocate.firm != user.firm:
-            raise ValidationError({"assigned_advocate": "Assigned advocate must belong to the same law firm."})
+        # 2. Determine if this is a solo advocate (not under any law firm)
+        is_solo_advocate = (user.user_type == 'advocate' and not user.firm)
+        
+        if is_solo_advocate:
+            # Solo advocate: case belongs to them directly, no firm required
+            advocate = user
+            branch = None
+            client = serializer.validated_data.get('client')
             
-        # 4. Branch Logic
-        if user.user_type == 'admin':
-            # Admins are locked to their specific branch
-            from accounts.models import UserFirmRole
-            admin_role = UserFirmRole.objects.filter(user=user, firm=user.firm).first()
-            if admin_role and admin_role.branch:
-                branch = admin_role.branch
-            elif not branch:
-                 # Fallback to user's direct branch link if available
-                 pass
+            case = serializer.save(
+                firm=None,
+                branch=None,
+                solo_advocate=user,
+                assigned_advocate=user
+            )
+        else:
+            # Firm-based flow: firm is required
+            if not user.firm:
+                raise ValidationError({"firm": "You must belong to a law firm to create cases."})
+            
+            # 3. Extract assignment data
+            advocate = serializer.validated_data.get('assigned_advocate')
+            branch = serializer.validated_data.get('branch')
+            client = serializer.validated_data.get('client')
+            
+            # 4. Validation: Advocate must belong to the same firm
+            if advocate and advocate.firm != user.firm:
+                raise ValidationError({"assigned_advocate": "Assigned advocate must belong to the same law firm."})
+            
+            # 5. Branch Logic
+            if user.user_type == 'admin':
+                from accounts.models import UserFirmRole
+                admin_role = UserFirmRole.objects.filter(user=user, firm=user.firm).first()
+                if admin_role and admin_role.branch:
+                    branch = admin_role.branch
+                elif not branch:
+                    pass
 
-        # 5. Save Case
-        case = serializer.save(firm=user.firm, branch=branch)
+            case = serializer.save(firm=user.firm, branch=branch, solo_advocate=None)
         
         # 6. Auto-assign client to advocate if not already assigned
-        if advocate and client and not client.assigned_advocate:
-            client.assigned_advocate = advocate
+        client = case.client
+        assigned_advocate = case.assigned_advocate
+        if assigned_advocate and client and not client.assigned_advocate:
+            client.assigned_advocate = assigned_advocate
             client.save()
         
         # 7. Log activity
@@ -152,6 +177,81 @@ class CaseDraftViewSet(viewsets.ModelViewSet):
         return CaseDraft.objects.filter(case__firm=self.request.user.firm)
 
 
+    # ==================== ADVOCATE CASES ENDPOINT ====================
+
+    @action(detail=False, methods=['get'], url_path='by-advocate')
+    def by_advocate(self, request):
+        """
+        Get all cases for a specific advocate with pagination and search.
+
+        GET /api/cases/by-advocate/?advocate_id=<uuid>
+        Optional filters: ?search=, ?status=, ?category=, ?page=, ?page_size=
+        """
+        from accounts.models import CustomUser
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        from rest_framework.pagination import PageNumberPagination
+
+        advocate_id = request.query_params.get('advocate_id')
+        if not advocate_id:
+            return Response({'error': 'advocate_id is required'}, status=400)
+
+        try:
+            advocate = CustomUser.objects.get(id=advocate_id, user_type='advocate')
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Advocate not found'}, status=404)
+
+        user = request.user
+
+        # Permission: platform_owner sees all; firm users must share the same firm;
+        # the advocate themselves can see their own cases
+        if user.user_type != 'platform_owner':
+            if user != advocate:
+                if not user.firm or advocate.firm != user.firm:
+                    raise PermissionDenied("You do not have access to this advocate's cases.")
+
+        # Build queryset — covers both firm-based and solo advocate cases
+        if advocate.firm:
+            queryset = Case.objects.filter(firm=advocate.firm, assigned_advocate=advocate)
+        else:
+            queryset = Case.objects.filter(solo_advocate=advocate)
+
+        # Search
+        search = request.query_params.get('search', '').strip()
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(case_title__icontains=search) |
+                Q(case_number__icontains=search) |
+                Q(petitioner_name__icontains=search) |
+                Q(respondent_name__icontains=search) |
+                Q(court_name__icontains=search) |
+                Q(cnr_number__icontains=search)
+            )
+
+        # Filters
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        category_filter = request.query_params.get('category')
+        if category_filter:
+            queryset = queryset.filter(category=category_filter)
+
+        queryset = queryset.order_by('-created_at')
+
+        # Paginate
+        paginator = PageNumberPagination()
+        page_size = request.query_params.get('page_size')
+        if page_size:
+            try:
+                paginator.page_size = int(page_size)
+            except ValueError:
+                pass
+
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
     # ==================== E-COURTS INTEGRATION ENDPOINTS ====================
     
     @action(detail=False, methods=['post'])
@@ -201,9 +301,10 @@ class CaseDraftViewSet(viewsets.ModelViewSet):
             advocate = CustomUser.objects.get(id=advocate_id) if advocate_id else None
             
             case = Case.objects.create(
-                firm=request.user.firm,
+                firm=request.user.firm,  # None for solo advocates
+                solo_advocate=request.user if not request.user.firm else None,
                 client=client,
-                assigned_advocate=advocate,
+                assigned_advocate=advocate or (request.user if not request.user.firm else None),
                 case_title=f"{parsed_data.get('case_type', 'Case')} - {parsed_data.get('case_number', '')}",
                 case_number=parsed_data.get('case_number'),
                 cnr_number=parsed_data.get('cnr_number'),

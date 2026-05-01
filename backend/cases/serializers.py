@@ -29,6 +29,7 @@ class CaseSerializer(serializers.ModelSerializer):
     assigned_advocate_name = serializers.CharField(source='assigned_advocate.get_full_name', read_only=True)
     paralegal_name = serializers.CharField(source='assigned_paralegal.get_full_name', read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    solo_advocate_name = serializers.CharField(source='solo_advocate.get_full_name', read_only=True)
     
     activities = CaseActivitySerializer(many=True, read_only=True)
     hearings = HearingSerializer(many=True, read_only=True)
@@ -37,7 +38,8 @@ class CaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Case
         fields = [
-            'id', 'firm', 'branch', 'branch_name', 'client', 'client_name', 'assigned_advocate', 'advocate_name', 'assigned_advocate_name',
+            'id', 'firm', 'branch', 'branch_name', 'solo_advocate', 'solo_advocate_name',
+            'client', 'client_name', 'assigned_advocate', 'advocate_name', 'assigned_advocate_name',
             'assigned_paralegal', 'paralegal_name', 'case_title', 'case_number',
             'case_type', 'description', 'status', 'category', 'priority', 'stage',
             'case_summary', 'billing_type', 'estimated_value', 'total_fee', 'hearing_fee', 'additional_expenses',
@@ -47,4 +49,4 @@ class CaseSerializer(serializers.ModelSerializer):
             'filing_date', 'next_hearing_date', 'created_at', 'updated_at',
             'activities', 'hearings', 'drafts'
         ]
-        read_only_fields = ['id', 'firm', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'firm', 'solo_advocate', 'created_at', 'updated_at']

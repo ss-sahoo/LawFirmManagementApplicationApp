@@ -98,7 +98,128 @@ class FirmSubscriptionViewSet(viewsets.ModelViewSet):
         """Placeholder for upgrade/subscribe logic"""
         # Logic to handle Stripe/Razorpay would go here
         return Response({'message': 'Payment gateway integration pending'})
-    
+
+    @action(detail=False, methods=['post'])
+    def upgrade(self, request):
+        """
+        Upgrade or purchase a new subscription plan. Activates immediately.
+
+        POST /api/subscriptions/firm-subscriptions/upgrade/
+        Body (super_admin):
+        {
+            "plan_id": "<uuid>",
+            "duration_months": 1,
+            "payment_method": "bank_transfer",
+            "payment_reference": "TXN123456"
+        }
+
+        Body (platform_owner — on behalf of a firm):
+        {
+            "firm_id": "<uuid>",
+            "plan_id": "<uuid>",
+            "duration_months": 1,
+            "payment_method": "bank_transfer",
+            "payment_reference": "TXN123456"
+        }
+        """
+        user = request.user
+
+        if user.user_type not in ['super_admin', 'platform_owner']:
+            return Response(
+                {'error': 'Only super admin or platform owner can upgrade a subscription'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        plan_id = request.data.get('plan_id')
+        duration_months = request.data.get('duration_months', 1)
+        payment_method = request.data.get('payment_method', 'manual')
+        payment_reference = request.data.get('payment_reference', '')
+
+        if not plan_id:
+            return Response({'error': 'plan_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({'error': 'Plan not found or inactive'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            duration_months = int(duration_months)
+            if duration_months not in [1, 3, 6, 12]:
+                return Response(
+                    {'error': 'duration_months must be 1, 3, 6, or 12'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response({'error': 'Invalid duration_months'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Resolve firm
+        if user.user_type == 'platform_owner':
+            firm_id = request.data.get('firm_id')
+            if not firm_id:
+                return Response({'error': 'firm_id is required for platform owner'}, status=status.HTTP_400_BAD_REQUEST)
+            from firms.models import Firm
+            try:
+                firm = Firm.objects.get(id=firm_id)
+            except Firm.DoesNotExist:
+                return Response({'error': 'Firm not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            firm = user.firm
+            if not firm:
+                return Response({'error': 'You are not associated with a firm'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from datetime import timedelta
+        now = timezone.now()
+        new_end_date = now + timedelta(days=duration_months * 30)
+
+        subscription = FirmSubscription.objects.filter(firm=firm).first()
+        old_plan = subscription.plan.name if subscription else None
+
+        if subscription:
+            subscription.plan = plan
+            subscription.status = 'active'
+            subscription.end_date = new_end_date
+            subscription.is_trial = False
+            subscription.save()
+        else:
+            subscription = FirmSubscription.objects.create(
+                firm=firm,
+                plan=plan,
+                status='active',
+                end_date=new_end_date,
+                is_trial=False
+            )
+
+        # Sync firm fields
+        firm.subscription_type = plan.plan_type
+        firm.subscription_end_date = new_end_date
+        firm.is_active = True
+        firm.save()
+
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=user,
+            firm=firm,
+            action='subscription_upgraded',
+            resource_type='subscription',
+            resource_id=str(subscription.id),
+            details={
+                'old_plan': old_plan,
+                'new_plan': plan.name,
+                'duration_months': duration_months,
+                'payment_method': payment_method,
+                'payment_reference': payment_reference,
+                'new_end_date': new_end_date.isoformat(),
+            }
+        )
+
+        serializer = self.get_serializer(subscription)
+        return Response({
+            'message': f'Subscription upgraded to "{plan.name}" successfully for {duration_months} month(s)',
+            'subscription': serializer.data,
+            'new_end_date': new_end_date,
+        }, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'])
     def renew(self, request, pk=None):
         """

@@ -15,8 +15,9 @@ class IsSubscriptionActive(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return True
             
-        # 2. Platform Owners and Partner Managers can always access (they manage the system)
-        if user.user_type in ['platform_owner', 'partner_manager']:
+        # 2. Platform Owners, Partner Managers, and Super Admins can always access
+        # (Super Admins need to manage their firm even when subscription is expired)
+        if user.user_type in ['platform_owner', 'partner_manager', 'super_admin']:
             return True
             
         # 3. Check firm status
