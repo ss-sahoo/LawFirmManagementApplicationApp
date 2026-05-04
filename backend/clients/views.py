@@ -185,8 +185,7 @@ class ClientViewSet(viewsets.ModelViewSet):
         
         # Get all clients assigned to this advocate
         clients = Client.objects.filter(
-            assigned_advocate=user,
-            firm=user.firm
+            assigned_advocate=user
         ).select_related('user_account', 'assigned_advocate')
         
         serializer = ClientSerializer(clients, many=True)

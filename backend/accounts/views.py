@@ -119,6 +119,27 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         elif user.user_type in ['super_admin', 'admin', 'advocate', 'paralegal']:
             return CustomUser.objects.filter(firm=user.firm)
         return CustomUser.objects.filter(id=user.id)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        user_type = self.request.data.get('user_type', 'client')
+        instance = serializer.save(user_type=user_type, firm=user.firm if user.firm else None)
+
+        # Auto-create Client record when a client user is created
+        if user_type == 'client':
+            from clients.models import Client as ClientRecord
+            advocate = user if user.user_type == 'advocate' else None
+            ClientRecord.objects.get_or_create(
+                user_account=instance,
+                defaults={
+                    'firm': user.firm,
+                    'first_name': instance.first_name,
+                    'last_name': instance.last_name,
+                    'email': instance.email,
+                    'phone_number': instance.phone_number or '',
+                    'assigned_advocate': advocate,
+                }
+            )
     
     def get_object(self):
         """Return 403 instead of 404 when object exists but user lacks permission"""
@@ -500,10 +521,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         # Send notification
         join_link = f"https://antlegal.anthemgt.com/join?token={invitation.id}"
         firm_name = firm.firm_name if firm else "AntLegal Platform"
+        role_display = user_type_to_add.replace('_', ' ').title()
         subject = f"Invite to join {firm_name} - AntLegal"
         message = (
             f"Hello {new_user.first_name or new_user.username},\n\n"
-            f"You have been invited to join {firm_name} as a {membership.get_user_type_display()} on AntLegal.\n\n"
+            f"You have been invited to join {firm_name} as a {role_display} on AntLegal.\n\n"
             f"Please click the link below to set up your account and get started:\n"
             f"{join_link}\n\n"
             f"This link will expire in 7 days.\n\n"
@@ -515,15 +537,19 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         log_audit(
             user, 
             'create_user', 
-            f"Added {membership.get_user_type_display()}: {new_user.get_full_name()} to {firm_name}"
+            f"Added {role_display}: {new_user.get_full_name()} to {firm_name}"
         )
         
-        return Response({
+        response_data = {
             'user': CustomUserSerializer(new_user).data,
             'invitation': UserInvitationSerializer(invitation).data,
-            'membership': UserFirmRoleSerializer(membership).data,
-            'message': f'User added to {firm.firm_name} successfully.'
-        }, status=status.HTTP_201_CREATED)
+            'message': f'User added successfully.'
+        }
+        if firm:
+            response_data['membership'] = UserFirmRoleSerializer(membership).data
+            response_data['message'] = f'User added to {firm.firm_name} successfully.'
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_name='switch_firm')
     def switch_firm(self, request):
