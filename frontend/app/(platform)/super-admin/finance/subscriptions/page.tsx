@@ -1,81 +1,283 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2, X, ChevronRight, Zap, Briefcase, Building2, Crown,
-  Sparkles, Users, HardDrive, Calendar, CreditCard, Activity, Clock, ShieldCheck
+  Sparkles, Users, HardDrive, Calendar, CreditCard, Activity, Clock, ShieldCheck, Loader2, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTopbarTitle } from '@/components/platform/TopbarContext';
+import { customFetch } from '@/lib/fetch';
+import { API, SUBSCRIPTION_PLANS } from '@/lib/api';
 
-const subscriptionPlans = [
-  {
-    name: 'Trial',
+const planDetails = {
+  'Trial': {
     description: 'Perfect to explore and test the platform features.',
-    price: '₹0',
-    period: 'for 14 days',
     icon: Zap,
     features: ['Up to 5 Clients limit', 'Basic Case Management', 'Community Support', '1 GB secure storage'],
     missingFeatures: ['Automated Billing', 'Advanced Reporting', 'API Access', 'White-labeling'],
-    buttonText: 'Start Trial',
     buttonVariant: 'outline',
     highlighted: false,
     isPremium: false,
   },
-  {
-    name: 'Basic',
+  'Basic': {
     description: 'Essential tools for independent advocates.',
-    price: '₹999',
-    period: '/ month',
     icon: Briefcase,
     features: ['Up to 50 Clients', 'Full Case Management', 'Email Support', '10 GB secure storage', 'Basic Invoicing'],
     missingFeatures: ['Advanced Reporting', 'API Access', 'White-labeling'],
-    buttonText: 'Get Basic',
     buttonVariant: 'secondary',
     highlighted: false,
     isPremium: false,
   },
-  {
-    name: 'Business',
+  'Business': {
     description: 'Comprehensive suite for growing law firms.',
-    price: '₹2,499',
-    period: '/ month',
     icon: Building2,
     features: ['Unlimited Clients', 'Advanced Case Management', 'Priority 24/7 Support', '100 GB secure storage', 'Automated Billing', 'Advanced Reporting'],
     missingFeatures: ['White-labeling'],
-    buttonText: 'Current Plan',
     buttonVariant: 'primary',
     highlighted: true,
     isPremium: false,
   },
-  {
-    name: 'Enterprise',
+  'Enterprise': {
     description: 'Custom solutions for large legal enterprises.',
-    price: 'Custom',
-    period: 'Pricing',
     icon: Crown,
     features: ['Unlimited Everything', 'Dedicated Account Manager', 'Unlimited secure storage', 'Automated Billing', 'Advanced Custom Reporting', 'Full API Access', 'White-labeling & Custom Domain'],
     missingFeatures: [],
-    buttonText: 'Contact Sales',
     buttonVariant: 'premium',
     highlighted: false,
     isPremium: true,
   }
-];
+};
+
+const mergedPlans = SUBSCRIPTION_PLANS.map(plan => ({
+  ...plan,
+  ...(planDetails[plan.name as keyof typeof planDetails] || planDetails['Basic'])
+}));
+
+interface CurrentSubscription {
+  plan_name: string;
+  price: string;
+  status: string;
+  renewal_date: string;
+  days_left: number;
+  users_added: number;
+  max_users: number;
+  storage_gb: number;
+  max_storage_gb: number;
+}
 
 export default function SubscriptionsPage() {
   useTopbarTitle('Subscription Management', 'Manage your active plan, monitor usage metrics, and upgrade your scale.');
 
   const [activeTab, setActiveTab] = useState<'current' | 'upgrade'>('current');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
+  const [currentSub, setCurrentSub] = useState<CurrentSubscription | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Modal state
+  const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [paymentRef, setPaymentRef] = useState('');
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState('');
+
+  useEffect(() => {
+    fetchCurrentSubscription();
+  }, []);
+
+  const fetchCurrentSubscription = async () => {
+    try {
+      setLoading(true);
+      const res = await customFetch(API.SUBSCRIPTIONS.STATUS).catch(() => null);
+      
+      if (res && res.ok) {
+        const statusData = await res.json();
+        
+        // Find price from static plans
+        const matchedPlan = SUBSCRIPTION_PLANS.find(p => p.name === statusData.plan_name);
+        const priceString = matchedPlan ? matchedPlan.price : '₹2,499';
+        
+        // Calculate days left
+        let daysLeft = 0;
+        if (statusData.end_date) {
+            const endDate = new Date(statusData.end_date);
+            const today = new Date();
+            const diffTime = Math.max(0, endDate.getTime() - today.getTime());
+            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        const renewalDateStr = statusData.end_date 
+            ? new Date(statusData.end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : 'N/A';
+
+        setCurrentSub({
+          plan_name: statusData.plan_name || 'Unknown',
+          price: priceString,
+          status: statusData.status === 'active' ? 'Active' : (statusData.status || 'Inactive'),
+          renewal_date: renewalDateStr,
+          days_left: daysLeft,
+          users_added: statusData.usage?.total_users || 0,
+          max_users: statusData.limits?.total_users || 120,
+          storage_gb: statusData.usage?.storage_gb || 0,
+          max_storage_gb: statusData.limits?.storage_gb || 100
+        });
+      } else {
+        // Fallback dummy data if no endpoint yet
+        setCurrentSub({
+          plan_name: 'Business',
+          price: '₹2,499',
+          status: 'Active',
+          renewal_date: 'May 12, 2026',
+          days_left: 14,
+          users_added: 45,
+          max_users: 120,
+          storage_gb: 42.5,
+          max_storage_gb: 100
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      // Fallback if JSON parse or other error occurs
+      setCurrentSub({
+        plan_name: 'Business',
+        price: '₹2,499',
+        status: 'Active',
+        renewal_date: 'May 12, 2026',
+        days_left: 14,
+        users_added: 45,
+        max_users: 120,
+        storage_gb: 42.5,
+        max_storage_gb: 100
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    if (!selectedPlan) return;
+    setUpgradeLoading(true);
+    setUpgradeError('');
+
+    try {
+      const payload = {
+        plan_id: selectedPlan.id,
+        duration_months: billingCycle === 'annually' ? 12 : 1,
+        payment_method: paymentMethod,
+        payment_reference: paymentRef || 'TXN123456' // Provide fallback if empty
+      };
+
+      const res = await customFetch(API.SUBSCRIPTIONS.UPGRADE, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Upgrade failed');
+      }
+
+      // Success
+      setSelectedPlan(null);
+      setActiveTab('current');
+      fetchCurrentSubscription();
+    } catch (error: any) {
+      setUpgradeError(error.message || 'An error occurred during upgrade');
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">
+          Loading Subscription...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#fafafa] p-4 md:p-4 lg:p-1 font-sans">
-      <div className="w-full max-w-[1600px] mx-auto space-y-12 pb-10">
+      <div className="w-full max-w-[1600px] mx-auto space-y-12 pb-10 relative">
+
+        {/* Modal Overlay */}
+        {selectedPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="text-xl font-bold text-slate-900">Upgrade to {selectedPlan.name}</h3>
+                <button onClick={() => setSelectedPlan(null)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-5">
+                <div className="bg-blue-50 text-blue-800 p-4 rounded-xl flex items-start gap-3">
+                  <Activity className="w-5 h-5 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold">Plan Details</p>
+                    <p className="text-sm opacity-90">Duration: {billingCycle === 'annually' ? '12 Months' : '1 Month'}</p>
+                    <p className="text-sm opacity-90">Price: {selectedPlan.price} {billingCycle === 'annually' ? '/ year' : '/ month'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Payment Method</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 font-medium outline-none"
+                    >
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="credit_card">Credit Card</option>
+                      <option value="upi">UPI</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Payment Reference</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TXN123456"
+                      value={paymentRef}
+                      onChange={(e) => setPaymentRef(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 font-medium outline-none"
+                    />
+                  </div>
+                </div>
+
+                {upgradeError && (
+                  <div className="p-3 bg-red-50 text-red-600 text-sm font-semibold rounded-xl flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <p>{upgradeError}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button 
+                  onClick={() => setSelectedPlan(null)}
+                  className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleUpgrade}
+                  disabled={upgradeLoading || !paymentRef.trim()}
+                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                  {upgradeLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Upgrade'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Header Section */}
         <div className="flex flex-col items-center text-center space-y-6 pt-4">
-
           {/* Centered Pill Tab navigation */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -107,7 +309,7 @@ export default function SubscriptionsPage() {
           <AnimatePresence mode="wait">
 
             {/* CURRENT PLAN VIEW */}
-            {activeTab === 'current' && (
+            {activeTab === 'current' && currentSub && (
               <motion.div
                 key="current"
                 initial={{ opacity: 0, y: 20 }}
@@ -125,10 +327,10 @@ export default function SubscriptionsPage() {
                   <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                       <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 border border-white/20 text-white rounded-full text-xs font-bold tracking-wide uppercase mb-3">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Active Status
+                        <ShieldCheck className="w-3.5 h-3.5" /> {currentSub.status} Status
                       </div>
-                      <h2 className="text-3xl font-black mb-1">Business Tier <span className="text-blue-200">Plan</span></h2>
-                      <p className="text-blue-100 font-medium">Billed ₹2,499 monthly. Renews on May 12, 2026.</p>
+                      <h2 className="text-3xl font-black mb-1">{currentSub.plan_name} Tier <span className="text-blue-200">Plan</span></h2>
+                      <p className="text-blue-100 font-medium">Billed {currentSub.price} monthly. Renews on {currentSub.renewal_date}.</p>
                     </div>
 
                     <button onClick={() => setActiveTab('upgrade')} className="px-6 py-3 bg-white text-blue-600 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-slate-50 transition-colors">
@@ -149,11 +351,11 @@ export default function SubscriptionsPage() {
                     </div>
                     <div>
                       <div className="flex justify-between items-end mb-2">
-                        <span className="text-2xl font-black text-slate-900">14<span className="text-base font-bold text-slate-400"> days</span></span>
+                        <span className="text-2xl font-black text-slate-900">{currentSub.days_left}<span className="text-base font-bold text-slate-400"> days</span></span>
                         <span className="text-sm font-semibold text-slate-500">out of 30</span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: '53%' }}></div>
+                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${(currentSub.days_left/30)*100}%` }}></div>
                       </div>
                       <p className="text-xs font-semibold text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" /> Cycle resets soon</p>
                     </div>
@@ -168,13 +370,13 @@ export default function SubscriptionsPage() {
                     </div>
                     <div>
                       <div className="flex justify-between items-end mb-2">
-                        <span className="text-2xl font-black text-slate-900">45<span className="text-base font-bold text-slate-400"> added</span></span>
-                        <span className="text-sm font-semibold text-slate-500">Unlimited</span>
+                        <span className="text-2xl font-black text-slate-900">{currentSub.users_added}<span className="text-base font-bold text-slate-400"> added</span></span>
+                        <span className="text-sm font-semibold text-slate-500">out of {currentSub.max_users}</span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '10%' }}></div>
+                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${(currentSub.users_added / currentSub.max_users) * 100}%` }}></div>
                       </div>
-                      <p className="text-xs font-semibold text-slate-400">You have no limit on users</p>
+                      <p className="text-xs font-semibold text-slate-400">You are using {Math.round((currentSub.users_added / currentSub.max_users) * 100)}% of your limit</p>
                     </div>
                   </div>
 
@@ -187,11 +389,11 @@ export default function SubscriptionsPage() {
                     </div>
                     <div>
                       <div className="flex justify-between items-end mb-2">
-                        <span className="text-2xl font-black text-slate-900">42.5<span className="text-base font-bold text-slate-400"> GB</span></span>
-                        <span className="text-sm font-semibold text-slate-500">of 100 GB</span>
+                        <span className="text-2xl font-black text-slate-900">{currentSub.storage_gb}<span className="text-base font-bold text-slate-400"> GB</span></span>
+                        <span className="text-sm font-semibold text-slate-500">of {currentSub.max_storage_gb} GB</span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div className="bg-amber-500 h-2 rounded-full" style={{ width: '42.5%' }}></div>
+                        <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${(currentSub.storage_gb / currentSub.max_storage_gb) * 100}%` }}></div>
                       </div>
                       <p className="text-xs font-semibold text-slate-400">Plenty of space remaining</p>
                     </div>
@@ -256,7 +458,7 @@ export default function SubscriptionsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 items-start">
-                  {subscriptionPlans.map((plan, idx) => {
+                  {mergedPlans.map((plan, idx) => {
                     const Icon = plan.icon;
                     return (
                       <motion.div
@@ -303,7 +505,7 @@ export default function SubscriptionsPage() {
                               {plan.price}
                             </span>
                             <span className={`text-sm font-bold pb-1 ${plan.isPremium ? 'text-slate-400' : 'text-slate-400'}`}>
-                              {plan.period}
+                              /{plan.period}
                             </span>
                           </div>
                         </div>
@@ -330,7 +532,11 @@ export default function SubscriptionsPage() {
 
                         <button
                           onClick={() => {
-                            if (plan.highlighted) setActiveTab('current');
+                            if (plan.name === currentSub?.plan_name) {
+                              setActiveTab('current');
+                            } else {
+                              setSelectedPlan(plan);
+                            }
                           }}
                           className={`w-full py-4 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02]
                             ${plan.buttonVariant === 'primary' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20' : ''}
@@ -339,7 +545,7 @@ export default function SubscriptionsPage() {
                             ${plan.buttonVariant === 'premium' ? 'bg-white hover:bg-slate-100 text-slate-900 shadow-xl' : ''}
                           `}
                         >
-                          {plan.buttonText}
+                          {plan.name === currentSub?.plan_name ? 'Current Plan' : `Get ${plan.name}`}
                           <ChevronRight className={`w-4 h-4 ${plan.buttonVariant === 'outline' ? 'text-slate-400' : ''}`} />
                         </button>
                       </motion.div>

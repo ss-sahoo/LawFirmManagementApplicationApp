@@ -124,6 +124,11 @@ export const API = {
   },
   SUBSCRIPTIONS: {
     ACTIVATE: "/api/subscriptions/firm-subscriptions/activate/",
+    UPGRADE: "/api/subscriptions/firm-subscriptions/upgrade/",
+    STATUS: "/api/subscriptions/firm-subscriptions/status/",
+    PLANS: {
+      DETAIL: (id: string) => `/api/subscriptions/plans/${id}/`,
+    }
   }
 };
 
