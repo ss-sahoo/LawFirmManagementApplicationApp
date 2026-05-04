@@ -237,7 +237,7 @@ class UserInvitation(models.Model):
 class FirmJoinLink(models.Model):
     """Generic reusable links for joining a firm with a specific role"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='join_links')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='join_links', null=True, blank=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     
     user_type = models.CharField(max_length=20, choices=CustomUser.USER_TYPE_CHOICES)
@@ -257,7 +257,8 @@ class FirmJoinLink(models.Model):
         ]
     
     def __str__(self):
-        return f"Join Link: {self.firm.firm_name} - {self.get_user_type_display()}"
+        firm_name = self.firm.firm_name if self.firm else "Solo Advocate"
+        return f"Join Link: {firm_name} - {self.get_user_type_display()}"
     
     def is_valid(self):
         if not self.is_active:
@@ -309,7 +310,7 @@ class AdvocateParalegalAssignment(models.Model):
         related_name='assigned_advocates',
         limit_choices_to={'user_type': 'paralegal'}
     )
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='advocate_paralegal_assignments')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='advocate_paralegal_assignments', null=True, blank=True)
     assigned_by = models.ForeignKey(
         CustomUser, 
         on_delete=models.SET_NULL, 

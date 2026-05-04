@@ -46,6 +46,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     firm_name = serializers.CharField(source='firm.firm_name', read_only=True)
     available_firms = UserFirmRoleSerializer(source='firm_memberships', many=True, read_only=True)
     uploaded_documents = serializers.SerializerMethodField()
+    username = serializers.CharField(required=False)
     
     def get_uploaded_documents(self, obj):
         """Get documents uploaded by this user"""
@@ -76,6 +77,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password': {'write_only': True}
         }
+
+    def validate(self, data):
+        # Auto-generate username from email or phone if not provided
+        if not data.get('username'):
+            data['username'] = data.get('email') or data.get('phone_number') or ''
+        return data
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -374,8 +381,11 @@ class GlobalConfigurationSerializer(serializers.ModelSerializer):
 
 
 class FirmJoinLinkSerializer(serializers.ModelSerializer):
-    firm_name = serializers.CharField(source='firm.firm_name', read_only=True)
+    firm_name = serializers.SerializerMethodField()
     user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
+
+    def get_firm_name(self, obj):
+        return obj.firm.firm_name if obj.firm else None
     
     class Meta:
         model = FirmJoinLink

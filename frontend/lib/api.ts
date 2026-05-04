@@ -47,6 +47,10 @@ export const API = {
     MY_CLIENTS: "/api/clients/my-clients/",
     CLIENT_DOCUMENTS: (uuid: string) => `/api/clients/${uuid}/documents/`
   },
+  PARALEGALS: {
+    MY_PARALEGALS: "/api/users/my_paralegals/",
+    ADD_USER: "/api/users/add_user/",
+  },
   PARTNERS: {
     LIST: "/api/partners/",
     ADD: "/api/partners/",

@@ -323,19 +323,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # ADVOCATE can add: PARALEGAL (within their firm)
+        # ADVOCATE can add: PARALEGAL (solo or within their firm)
         elif user.user_type == 'advocate':
             if user_type_to_add != 'paralegal':
                 return Response(
                     {'error': 'Advocate can only add Paralegal users'},
                     status=status.HTTP_403_FORBIDDEN
                 )
-            firm = user.firm
-            if not firm:
-                return Response(
-                    {'error': 'Advocate must be associated with a firm'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            firm = user.firm  # May be None for solo advocates — that's fine
         
         # PARALEGAL, CLIENT cannot add users
         else:
@@ -430,31 +425,32 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create UserFirmRole mapping (or update if exists)
+        # Create UserFirmRole mapping (or update if exists) — skip for solo advocates
         branch_id = data.get('branch_id')
         branch = None
-        if branch_id:
-            branch = Branch.objects.filter(id=branch_id, firm=firm).first()
+        if firm:
+            if branch_id:
+                branch = Branch.objects.filter(id=branch_id, firm=firm).first()
 
-        membership, created = UserFirmRole.objects.get_or_create(
-            user=new_user,
-            firm=firm,
-            defaults={'user_type': user_type_to_add, 'branch': branch}
-        )
-        
-        if not created:
-            if membership.user_type != user_type_to_add or membership.branch != branch:
-                membership.user_type = user_type_to_add
-                membership.branch = branch
+            membership, created = UserFirmRole.objects.get_or_create(
+                user=new_user,
+                firm=firm,
+                defaults={'user_type': user_type_to_add, 'branch': branch}
+            )
+            
+            if not created:
+                if membership.user_type != user_type_to_add or membership.branch != branch:
+                    membership.user_type = user_type_to_add
+                    membership.branch = branch
+                    membership.save()
+            
+            # Set as active if it's their only firm or first one added
+            if new_user.firm_memberships.count() == 1:
+                membership.is_last_active = True
                 membership.save()
-        
-        # Set as active if it's their only firm or first one added
-        if new_user.firm_memberships.count() == 1:
-            membership.is_last_active = True
-            membership.save()
-            new_user.firm = firm
-            new_user.user_type = user_type_to_add
-            new_user.save()
+                new_user.firm = firm
+                new_user.user_type = user_type_to_add
+                new_user.save()
 
         # ============================================================================
         # AUTO-CREATE CLIENT RECORD (when admin adds a client)
@@ -1488,7 +1484,8 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
             except Firm.DoesNotExist:
                 raise serializers.ValidationError({'firm': 'Invalid firm ID'})
         
-        if not firm:
+        # Solo advocates (no firm) are allowed to create client join links
+        if not firm and user.user_type != 'advocate':
             raise serializers.ValidationError({'firm': 'Firm is required'})
         
         # Advocates can only create client join links
@@ -1498,7 +1495,8 @@ class FirmJoinLinkViewSet(viewsets.ModelViewSet):
                 raise DRFPermDenied("Advocates can only create client join links")
             
         serializer.save(created_by=user, firm=firm)
-        log_audit(user, 'create_join_link', f"Created {serializer.validated_data.get('user_type')} join link for {firm.firm_name}")
+        firm_label = firm.firm_name if firm else "solo advocate"
+        log_audit(user, 'create_join_link', f"Created {serializer.validated_data.get('user_type')} join link for {firm_label}")
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def details(self, request, pk=None):
