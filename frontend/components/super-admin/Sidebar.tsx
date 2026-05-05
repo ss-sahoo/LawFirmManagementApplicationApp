@@ -32,6 +32,7 @@ const userSubItems = [
 const financeSubItems = [
   { label: 'Overview', path: '/super-admin/finance', icon: Activity },
   { label: 'Client Invoices', path: '/super-admin/finance/client-invoices', icon: FileText },
+  { label: 'My Bills', path: '/super-admin/finance/my-bills', icon: FileText },
   { label: 'Payouts', path: '/super-admin/finance/payouts', icon: CreditCard },
   { label: 'Expenses', path: '/super-admin/finance/expenses', icon: Wallet },
   { label: 'Reports', path: '/super-admin/finance/reports', icon: PieChart },

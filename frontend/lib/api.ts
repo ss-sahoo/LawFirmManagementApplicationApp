@@ -137,6 +137,7 @@ export const API = {
       SEND: (id: string) => `/api/subscriptions/platform-invoices/${id}/send/`,
       MARK_PAID: (id: string) => `/api/subscriptions/platform-invoices/${id}/mark_paid/`,
       CANCEL: (id: string) => `/api/subscriptions/platform-invoices/${id}/cancel/`,
+      MY_INVOICES: "/api/subscriptions/platform-invoices/my_invoices/",
     }
   }
 };
