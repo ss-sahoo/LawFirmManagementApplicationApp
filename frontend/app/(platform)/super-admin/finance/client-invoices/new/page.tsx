@@ -12,12 +12,13 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Client {
-  id: string;
+  id: string; // client profile UUID
   name: string;
   first_name?: string;
   last_name?: string;
+  full_name?: string;
   email: string;
-  client_id?: string;
+  user_account?: string;
 }
 
 interface Case {
@@ -100,7 +101,7 @@ export default function CreateInvoicePage() {
     const fetchData = async () => {
       try {
         const [clientsRes, casesRes] = await Promise.all([
-          customFetch(API.CLIENTS.LIST),
+          customFetch('/api/clients/'),
           customFetch(API.CASES.LIST)
         ]);
         let clientsList: any[] = [];
@@ -108,7 +109,15 @@ export default function CreateInvoicePage() {
 
         if (clientsRes.ok) {
           const data = await clientsRes.json();
-          clientsList = Array.isArray(data) ? data : (data.results || []);
+          const raw: any[] = Array.isArray(data) ? data : (data.results || []);
+          clientsList = raw.map((c: any) => ({
+            id: c.id,
+            first_name: c.first_name || '',
+            last_name: c.last_name || '',
+            name: c.full_name || `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+            email: c.email || '',
+            user_account: c.user_account,
+          }));
           setClients(clientsList);
         }
         if (casesRes.ok) {
@@ -133,9 +142,9 @@ export default function CreateInvoicePage() {
             setInvoiceStatus(inv.status || 'draft');
             if (inv.pdf_file) setExistingPdfUrl(inv.pdf_file);
 
-            // Pre-select client — match by client_user_account_id first, fallback to client UUID
+            // Pre-select client — match by user_account or client profile id
             const matchedClient = clientsList.find(
-              (c: any) => c.id === inv.client_user_account_id || c.id === inv.client
+              (c: any) => c.user_account === inv.client_user_account_id || c.id === inv.client
             );
             setSelectedClient(matchedClient || { id: inv.client, name: inv.client_name, email: '' });
 
@@ -221,7 +230,7 @@ export default function CreateInvoicePage() {
 
       if (pdfFile) {
         const fd = new FormData();
-        fd.append('client', (selectedClient as any).client_id || selectedClient.id);
+        fd.append('client', selectedClient.id);
         if (selectedCase?.id) fd.append('case', selectedCase.id);
         fd.append('invoice_number', invoiceNumber);
         fd.append('invoice_date', invoiceDate);
@@ -240,7 +249,7 @@ export default function CreateInvoicePage() {
       } else {
         headers['Content-Type'] = 'application/json';
         const payload: any = {
-          client: (selectedClient as any).client_id || selectedClient.id,
+          client: selectedClient.id,
           case: selectedCase?.id || null,
           invoice_number: invoiceNumber,
           invoice_date: invoiceDate,

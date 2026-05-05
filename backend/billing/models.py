@@ -391,6 +391,7 @@ class AdvocateInvoice(models.Model):
     total_amount = models.DecimalField(
         max_digits=12, 
         decimal_places=2,
+        default=0,
         help_text="Total amount to be paid"
     )
     
@@ -437,11 +438,12 @@ class AdvocateInvoice(models.Model):
         self.save()
     
     def save(self, *args, **kwargs):
-        # Auto-calculate amounts if not already set
-        if not self.total_amount or self.total_amount == 0:
-            if self.subtotal and self.tax_percentage is not None:
-                self.tax_amount = self.subtotal * (self.tax_percentage / 100)
-                self.total_amount = self.subtotal + self.tax_amount
+        # Always recalculate tax_amount and total_amount from subtotal
+        from decimal import Decimal
+        subtotal = self.subtotal or Decimal('0')
+        tax_pct = self.tax_percentage or Decimal('0')
+        self.tax_amount = subtotal * (tax_pct / 100)
+        self.total_amount = subtotal + self.tax_amount
         super().save(*args, **kwargs)
     
     def __str__(self):

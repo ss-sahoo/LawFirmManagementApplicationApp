@@ -859,12 +859,291 @@ class FinanceOverviewViewSet(viewsets.ViewSet):
         
         # Calculate metrics
         from decimal import Decimal
-        
+        from subscriptions.models import PlatformInvoice
+
+        # For platform_owner: use PlatformInvoice as the primary revenue source
+        if user.user_type == 'platform_owner':
+            platform_invoices = PlatformInvoice.objects.all()
+
+            # 1. Total Revenue = paid platform invoices + paid client invoices
+            platform_revenue = platform_invoices.filter(status='paid').aggregate(
+                total=Sum('total_amount')
+            )['total'] or Decimal('0')
+
+            client_invoice_revenue = invoices.filter(status='paid').aggregate(
+                total=Sum('total_amount')
+            )['total'] or Decimal('0')
+
+            total_revenue = platform_revenue + client_invoice_revenue
+
+            # 2. Expenses = advocate payouts across all firms
+            advocate_payouts_total = advocate_invoices.filter(status='paid').aggregate(
+                total=Sum('total_amount')
+            )['total'] or Decimal('0')
+            total_expenses = advocate_payouts_total
+
+            # 3. Net Profit
+            net_profit = total_revenue - total_expenses
+
+            # 4. Pending = all unpaid invoices across all types
+            pending_platform_amount = platform_invoices.filter(
+                status__in=['sent', 'overdue']
+            ).aggregate(total=Sum('balance_due'))['total'] or Decimal('0')
+            pending_platform_count = platform_invoices.filter(status__in=['sent', 'overdue']).count()
+
+            pending_client_amount = invoices.filter(
+                status__in=['sent', 'viewed', 'partially_paid', 'overdue']
+            ).aggregate(total=Sum('balance_due'))['total'] or Decimal('0')
+            pending_client_count = invoices.filter(
+                status__in=['sent', 'viewed', 'partially_paid', 'overdue']
+            ).count()
+
+            pending_invoices_amount = pending_platform_amount + pending_client_amount
+            pending_invoices_count = pending_platform_count + pending_client_count
+
+            # 5. Outstanding Payouts (approved advocate invoices not paid)
+            outstanding_payouts = advocate_invoices.filter(
+                status='approved'
+            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+            outstanding_payouts_count = advocate_invoices.filter(status='approved').count()
+
+            # 6. Revenue chart — combined last 6 months
+            six_months_ago = timezone.now() - timedelta(days=180)
+
+            monthly_platform_rev = platform_invoices.filter(
+                status='paid', invoice_date__gte=six_months_ago
+            ).annotate(month=TruncMonth('invoice_date')).values('month').annotate(
+                revenue=Sum('total_amount')
+            ).order_by('month')
+
+            monthly_client_rev = invoices.filter(
+                status='paid', invoice_date__gte=six_months_ago
+            ).annotate(month=TruncMonth('invoice_date')).values('month').annotate(
+                revenue=Sum('total_amount')
+            ).order_by('month')
+
+            # Merge both into a single month map
+            rev_map = {}
+            for item in monthly_platform_rev:
+                key = item['month'].strftime('%b')
+                rev_map[key] = rev_map.get(key, 0) + float(item['revenue'])
+            for item in monthly_client_rev:
+                key = item['month'].strftime('%b')
+                rev_map[key] = rev_map.get(key, 0) + float(item['revenue'])
+
+            monthly_adv_exp = advocate_invoices.filter(
+                status='paid', invoice_date__gte=six_months_ago
+            ).annotate(month=TruncMonth('invoice_date')).values('month').annotate(
+                expense=Sum('total_amount')
+            ).order_by('month')
+
+            exp_map = {}
+            for item in monthly_adv_exp:
+                key = item['month'].strftime('%b')
+                exp_map[key] = exp_map.get(key, 0) + float(item['expense'])
+
+            # Build ordered month list
+            from datetime import date
+            months_ordered = []
+            for i in range(5, -1, -1):
+                from dateutil.relativedelta import relativedelta
+                d = timezone.now().date() - relativedelta(months=i)
+                months_ordered.append(d.strftime('%b'))
+
+            revenue_chart = [{'month': m, 'amount': rev_map.get(m, 0)} for m in months_ordered]
+            expense_chart = [{'month': m, 'amount': exp_map.get(m, 0)} for m in months_ordered]
+
+            # 7. Top Firms by platform invoice revenue
+            top_firms_qs = platform_invoices.filter(status='paid').values(
+                'firm__id', 'firm__firm_name'
+            ).annotate(total_revenue=Sum('total_amount')).order_by('-total_revenue')[:5]
+
+            top_clients_data = [
+                {
+                    'client_id': str(f['firm__id']),
+                    'client_name': f['firm__firm_name'],
+                    'revenue': float(f['total_revenue']),
+                    'invoice_count': 0,
+                    'percentage': float((f['total_revenue'] / total_revenue * 100) if total_revenue > 0 else 0)
+                }
+                for f in top_firms_qs
+            ]
+
+            # 8. Outstanding — platform invoices + client invoices combined
+            outstanding_platform = list(platform_invoices.filter(
+                status__in=['sent', 'overdue']
+            ).order_by('due_date')[:5])
+
+            outstanding_client = list(invoices.filter(
+                status__in=['sent', 'viewed', 'partially_paid', 'overdue']
+            ).order_by('due_date')[:5])
+
+            outstanding_invoices_data = []
+            for inv in outstanding_platform:
+                outstanding_invoices_data.append({
+                    'invoice_id': str(inv.id),
+                    'invoice_number': inv.invoice_number,
+                    'client_name': inv.firm.firm_name,
+                    'invoice_type': 'platform',
+                    'amount': float(inv.balance_due),
+                    'due_date': inv.due_date.isoformat(),
+                    'days_overdue': (timezone.now().date() - inv.due_date).days if inv.due_date < timezone.now().date() else 0,
+                    'status': inv.status
+                })
+            for inv in outstanding_client:
+                outstanding_invoices_data.append({
+                    'invoice_id': str(inv.id),
+                    'invoice_number': inv.invoice_number,
+                    'client_name': inv.client.get_full_name() if hasattr(inv.client, 'get_full_name') else str(inv.client),
+                    'invoice_type': 'client',
+                    'amount': float(inv.balance_due),
+                    'due_date': inv.due_date.isoformat(),
+                    'days_overdue': (timezone.now().date() - inv.due_date).days if inv.due_date < timezone.now().date() else 0,
+                    'status': inv.status
+                })
+
+            # 9. Recent invoices — all types merged, sorted by date
+            recent_platform = list(platform_invoices.order_by('-invoice_date')[:10])
+            recent_client = list(invoices.order_by('-invoice_date')[:10])
+            recent_advocate = list(advocate_invoices.order_by('-invoice_date')[:10])
+
+            all_recent = []
+            for inv in recent_platform:
+                all_recent.append({
+                    'invoice_id': str(inv.id),
+                    'invoice_number': inv.invoice_number,
+                    'client_name': inv.firm.firm_name,
+                    'invoice_type': 'platform',
+                    'amount': float(inv.total_amount),
+                    'invoice_date': inv.invoice_date.isoformat(),
+                    'status': inv.status
+                })
+            for inv in recent_client:
+                all_recent.append({
+                    'invoice_id': str(inv.id),
+                    'invoice_number': inv.invoice_number,
+                    'client_name': inv.client.get_full_name() if hasattr(inv.client, 'get_full_name') else str(inv.client),
+                    'invoice_type': 'client',
+                    'amount': float(inv.total_amount),
+                    'invoice_date': inv.invoice_date.isoformat(),
+                    'status': inv.status
+                })
+            for inv in recent_advocate:
+                all_recent.append({
+                    'invoice_id': str(inv.id),
+                    'invoice_number': inv.invoice_number,
+                    'client_name': inv.advocate.get_full_name(),
+                    'invoice_type': 'advocate',
+                    'amount': float(inv.total_amount),
+                    'invoice_date': inv.invoice_date.isoformat(),
+                    'status': inv.status
+                })
+
+            all_recent.sort(key=lambda x: x['invoice_date'], reverse=True)
+            recent_invoices_data = all_recent[:10]
+
+            # 10. Invoice totals by status across all types
+            def inv_total(qs, st):
+                return float(qs.filter(status=st).aggregate(t=Sum('total_amount'))['t'] or 0)
+
+            invoice_stats = {
+                'platform': {
+                    'total': platform_invoices.count(),
+                    'paid': platform_invoices.filter(status='paid').count(),
+                    'paid_amount': float(platform_invoices.filter(status='paid').aggregate(t=Sum('total_amount'))['t'] or 0),
+                    'pending': platform_invoices.filter(status__in=['sent', 'overdue']).count(),
+                    'pending_amount': float(pending_platform_amount),
+                    'draft': platform_invoices.filter(status='draft').count(),
+                },
+                'client': {
+                    'total': invoices.count(),
+                    'paid': invoices.filter(status='paid').count(),
+                    'paid_amount': float(client_invoice_revenue),
+                    'pending': invoices.filter(status__in=['sent', 'viewed', 'partially_paid', 'overdue']).count(),
+                    'pending_amount': float(pending_client_amount),
+                    'draft': invoices.filter(status='draft').count(),
+                },
+                'advocate': {
+                    'total': advocate_invoices.count(),
+                    'paid': advocate_invoices.filter(status='paid').count(),
+                    'paid_amount': float(advocate_payouts_total),
+                    'pending': advocate_invoices.filter(status__in=['submitted', 'approved']).count(),
+                    'pending_amount': float(outstanding_payouts),
+                    'draft': advocate_invoices.filter(status='draft').count(),
+                },
+            }
+
+            # Recent advocate payouts
+            recent_payouts_qs = advocate_invoices.filter(
+                status__in=['approved', 'paid']
+            ).order_by('-invoice_date')[:5]
+
+            recent_payouts_data = [
+                {
+                    'payout_id': str(p.id),
+                    'payout_number': p.invoice_number,
+                    'advocate_name': p.advocate.get_full_name(),
+                    'amount': float(p.total_amount),
+                    'date': p.invoice_date.isoformat(),
+                    'status': p.status
+                }
+                for p in recent_payouts_qs
+            ]
+
+            # Revenue change (last 30 vs previous 30 days)
+            thirty_days_ago = timezone.now() - timedelta(days=30)
+            sixty_days_ago = timezone.now() - timedelta(days=60)
+            current_rev = platform_invoices.filter(
+                status='paid', invoice_date__gte=thirty_days_ago
+            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+            prev_rev = platform_invoices.filter(
+                status='paid', invoice_date__gte=sixty_days_ago, invoice_date__lt=thirty_days_ago
+            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+            revenue_change = float(
+                ((current_rev - prev_rev) / prev_rev * 100) if prev_rev > 0 else 0
+            )
+
+            return Response({
+                'summary': {
+                    'total_revenue': {
+                        'amount': float(total_revenue),
+                        'change_percentage': revenue_change,
+                        'trend': 'up' if revenue_change >= 0 else 'down'
+                    },
+                    'net_profit': {
+                        'amount': float(net_profit),
+                        'margin_percentage': float((net_profit / total_revenue * 100) if total_revenue > 0 else 0)
+                    },
+                    'pending_invoices': {
+                        'amount': float(pending_invoices_amount),
+                        'count': pending_invoices_count
+                    },
+                    'outstanding_payouts': {
+                        'amount': float(outstanding_payouts),
+                        'count': outstanding_payouts_count
+                    }
+                },
+                'charts': {
+                    'revenue_expenses': {
+                        'revenue': revenue_chart,
+                        'expenses': expense_chart
+                    }
+                },
+                'top_clients': top_clients_data,
+                'outstanding_invoices': outstanding_invoices_data,
+                'recent_invoices': recent_invoices_data,
+                'recent_payouts': recent_payouts_data,
+                'invoice_stats': invoice_stats,
+                'user_type': user.user_type
+            })
+
+        # ── Non-platform-owner path ──────────────────────────────────────────
+
         # 1. Total Revenue (from paid client invoices)
         total_revenue = invoices.filter(status='paid').aggregate(
             total=Sum('total_amount')
         )['total'] or Decimal('0')
-        
+
         # 2. Total Expenses (case expenses + advocate payouts)
         case_expenses = expenses.filter(billable=True).aggregate(
             total=Sum('billable_amount')
