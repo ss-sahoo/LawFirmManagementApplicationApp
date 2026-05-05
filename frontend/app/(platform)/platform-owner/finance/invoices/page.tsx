@@ -125,6 +125,23 @@ export default function PlatformOwnerInvoicesPage() {
     return Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  const handleSendToAdvocate = async (inv: any) => {
+    if (!confirm(`Send invoice ${inv.invoice_number} to ${inv.advocate_name}? They will be able to see it.`)) return;
+    try {
+      const res = await customFetch(API.BILLING.ADVOCATE_INVOICES.SEND_TO_ADVOCATE(inv.id), { method: 'POST' });
+      if (res.ok) {
+        alert('Invoice sent to advocate successfully!');
+        fetchAdvocateInvoices();
+        if (selectedInvoice?.id === inv.id) fetchInvoiceDetail(inv.id);
+      } else {
+        const err = await res.json();
+        alert(`Failed: ${err.error || 'Unknown error'}`);
+      }
+    } catch {
+      alert('Error sending invoice');
+    }
+  };
+
   const handleMarkPaid = async () => {
     if (!selectedInvoice) return;
     const amountStr = prompt('Enter payment amount:', selectedInvoice.balance_due);
@@ -310,6 +327,12 @@ export default function PlatformOwnerInvoicesPage() {
                               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50" title="View">
                               {detailLoading && selectedInvoice?.id === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                             </button>
+                            {activeTab === 'advocate' && inv.status === 'draft' && (
+                              <button onClick={() => handleSendToAdvocate(inv)}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Send to Advocate">
+                                <Send className="w-4 h-4" />
+                              </button>
+                            )}
                             <button onClick={async () => {
                               if (confirm('Delete this invoice?')) {
                                 const res = await customFetch(API.BILLING.INVOICES.DETAIL(inv.id), { method: 'DELETE' });
@@ -397,6 +420,12 @@ export default function PlatformOwnerInvoicesPage() {
                           className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all">
                           <Edit className="w-4 h-4" /> Edit
                         </Link>
+                      )}
+                      {selectedInvoice.status === 'draft' && (
+                        <button onClick={() => handleSendToAdvocate(selectedInvoice)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all border border-emerald-100">
+                          <Send className="w-4 h-4" /> Send to Advocate
+                        </button>
                       )}
                       <button onClick={handleMarkPaid} disabled={selectedInvoice.status === 'paid' || selectedInvoice.status === 'cancelled'}
                         className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all border border-green-100 disabled:opacity-50">

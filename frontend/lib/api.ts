@@ -106,6 +106,7 @@ export const API = {
       CREATE: "/api/billing/advocate-invoices/",
       DETAIL: (id: string) => `/api/billing/advocate-invoices/${id}/`,
       SUBMIT: (id: string) => `/api/billing/advocate-invoices/${id}/submit/`,
+      SEND_TO_ADVOCATE: (id: string) => `/api/billing/advocate-invoices/${id}/send_to_advocate/`,
       REVIEW: (id: string) => `/api/billing/advocate-invoices/${id}/review/`,
       PAY: (id: string) => `/api/billing/advocate-invoices/${id}/pay/`,
       MY_INVOICES: "/api/billing/advocate-invoices/my_invoices/",
