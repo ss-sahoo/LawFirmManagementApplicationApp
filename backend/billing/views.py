@@ -512,11 +512,15 @@ class AdvocateInvoiceViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         if user.user_type == 'platform_owner':
+            # Platform owner sees all advocate invoices (including drafts they created)
             queryset = AdvocateInvoice.objects.all()
         elif user.user_type in ['super_admin', 'admin']:
             queryset = AdvocateInvoice.objects.filter(firm=user.firm)
         elif user.user_type == 'advocate':
-            queryset = AdvocateInvoice.objects.filter(advocate=user)
+            # Advocates only see invoices that have been sent to them (not drafts)
+            queryset = AdvocateInvoice.objects.filter(
+                advocate=user
+            ).exclude(status='draft')
         else:
             queryset = AdvocateInvoice.objects.none()
         
@@ -605,6 +609,37 @@ class AdvocateInvoiceViewSet(viewsets.ModelViewSet):
         
         instance.delete()
     
+    @action(detail=True, methods=['post'])
+    def send_to_advocate(self, request, pk=None):
+        """
+        Platform owner sends a draft invoice to the advocate.
+        Changes status from 'draft' to 'sent' so the advocate can see it.
+        
+        POST /api/billing/advocate-invoices/{id}/send_to_advocate/
+        """
+        if request.user.user_type != 'platform_owner':
+            return Response(
+                {'error': 'Only platform owners can send invoices to advocates'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        invoice = self.get_object()
+        
+        if invoice.status != 'draft':
+            return Response(
+                {'error': f'Invoice is already {invoice.status}. Only draft invoices can be sent.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        invoice.status = 'sent'
+        invoice.save()
+        
+        serializer = self.get_serializer(invoice)
+        return Response({
+            'message': f'Invoice {invoice.invoice_number} sent to {invoice.advocate.get_full_name() or invoice.advocate.email}',
+            'invoice': serializer.data
+        })
+
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):
         """
@@ -741,7 +776,10 @@ class AdvocateInvoiceViewSet(viewsets.ModelViewSet):
                 'error': 'Only advocates can access this endpoint'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        invoices = AdvocateInvoice.objects.filter(advocate=request.user)
+        # Advocates only see invoices that have been sent to them (not drafts)
+        invoices = AdvocateInvoice.objects.filter(
+            advocate=request.user
+        ).exclude(status='draft')
         
         # Filter by status if provided
         status_filter = request.query_params.get('status')
