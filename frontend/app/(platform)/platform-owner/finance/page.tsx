@@ -8,7 +8,7 @@ import {
 import {
   Download, Calendar, CreditCard, ArrowUpRight, ArrowDownRight,
   AlertCircle, ChevronDown, IndianRupee, Activity, Loader2,
-  Building2, Users, FileText, Briefcase,
+  Building2, FileText, Briefcase,
 } from 'lucide-react';
 import { useTopbarTitle } from '@/components/platform/TopbarContext';
 import { customFetch } from '@/lib/fetch';
@@ -94,7 +94,7 @@ export default function PlatformOwnerFinanceDashboard() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'platform' | 'client' | 'advocate'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'platform' | 'advocate'>('all');
 
   useEffect(() => {
     (async () => {
@@ -218,7 +218,6 @@ export default function PlatformOwnerFinanceDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               { label: 'Platform Invoices', icon: Building2, color: 'text-purple-600 bg-purple-50', stat: stats.platform, type: 'platform' },
-              { label: 'Client Invoices', icon: Users, color: 'text-blue-600 bg-blue-50', stat: stats.client, type: 'client' },
               { label: 'Advocate Invoices', icon: Briefcase, color: 'text-amber-600 bg-amber-50', stat: stats.advocate, type: 'advocate' },
             ].map((card) => (
               <div key={card.type} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -320,7 +319,7 @@ export default function PlatformOwnerFinanceDashboard() {
               <p className="text-sm text-gray-500">All invoice types across all firms</p>
             </div>
             <div className="flex gap-1 bg-gray-100 p-1 rounded-xl text-xs font-bold">
-              {(['all', 'platform', 'client', 'advocate'] as const).map(tab => (
+              {(['all', 'platform', 'advocate'] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className={`px-3 py-1.5 rounded-lg capitalize transition-all ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   {tab}

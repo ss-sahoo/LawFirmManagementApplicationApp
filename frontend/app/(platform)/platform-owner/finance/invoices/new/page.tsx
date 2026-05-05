@@ -19,6 +19,7 @@ interface Client {
   full_name?: string;
   email: string;
   user_account?: string; // user UUID
+  firm?: string | null;  // firm UUID — null means solo/individual client
 }
 
 interface Advocate {

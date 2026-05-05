@@ -158,7 +158,7 @@ class Invoice(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='invoices')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='invoices', null=True, blank=True)
     branch = models.ForeignKey('firms.Branch', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
     case = models.ForeignKey('cases.Case', on_delete=models.CASCADE, related_name='invoices', null=True, blank=True)
     client = models.ForeignKey('clients.Client', on_delete=models.CASCADE, related_name='invoices')
@@ -360,7 +360,7 @@ class AdvocateInvoice(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='advocate_invoices')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='advocate_invoices', null=True, blank=True)
     advocate = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, related_name='advocate_invoices')
     
     invoice_number = models.CharField(max_length=50, unique=True)
