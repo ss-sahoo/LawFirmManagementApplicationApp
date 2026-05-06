@@ -198,20 +198,67 @@ export default function PlatformOwnerSubscriptionsPage() {
                       </div>
                     </div>
 
-                    <div className="mb-6">
+                    <div className="mb-5">
                       <span className={`text-3xl font-black ${isPremium ? 'text-white' : 'text-slate-900'}`}>
-                        {plan.price || 'Custom'}
+                        {isPremium || parseFloat(plan.price) === 0 && plan.name?.toLowerCase() === 'enterprise'
+                          ? 'Custom'
+                          : parseFloat(plan.price) === 0
+                            ? 'Free'
+                            : plan.price != null
+                              ? `₹${parseFloat(plan.price).toLocaleString('en-IN')}`
+                              : 'Custom'}
                       </span>
-                      {plan.period && <span className={`text-sm font-medium ml-1 ${isPremium ? 'text-slate-400' : 'text-slate-400'}`}>/{plan.period}</span>}
+                      {(!isPremium && parseFloat(plan.price) > 0) && (
+                        <span className="text-xs font-medium ml-1.5 text-slate-400">
+                          /{plan.billing_cycle || 'month'}
+                        </span>
+                      )}
+                      {isPremium && (
+                        <p className="text-xs text-slate-400 mt-1">Contact us for pricing</p>
+                      )}
                     </div>
 
                     <div className="space-y-2.5 flex-1">
-                      {meta.features.map((f, fi) => (
-                        <div key={fi} className="flex items-center gap-2.5">
-                          <CheckCircle2 className={`w-4 h-4 shrink-0 ${isPremium ? 'text-emerald-400' : 'text-emerald-500'}`} />
-                          <span className={`text-sm font-medium ${isPremium ? 'text-slate-200' : 'text-slate-700'}`}>{f}</span>
+                      {/* Real limits from API */}
+                      {[
+                        { label: `Max Advocates`, value: plan.max_advocates != null ? (plan.max_advocates >= 999 ? 'Unlimited' : plan.max_advocates) : null },
+                        { label: `Max Paralegals`, value: plan.max_paralegals != null ? (plan.max_paralegals >= 999 ? 'Unlimited' : plan.max_paralegals) : null },
+                        { label: `Max Admins`, value: plan.max_admins != null ? (plan.max_admins >= 999 ? 'Unlimited' : plan.max_admins) : null },
+                        { label: `Max Users`, value: plan.max_users != null ? (plan.max_users >= 999 ? 'Unlimited' : plan.max_users) : null },
+                        { label: `Max Clients`, value: plan.max_clients != null ? (plan.max_clients >= 999 ? 'Unlimited' : plan.max_clients) : null },
+                        { label: `Max Cases`, value: plan.max_cases != null ? (plan.max_cases >= 999 ? 'Unlimited' : plan.max_cases) : null },
+                        { label: `Max Branches`, value: plan.max_branches != null ? (plan.max_branches >= 999 ? 'Unlimited' : plan.max_branches) : null },
+                        { label: `Storage`, value: plan.max_storage_gb != null ? (plan.max_storage_gb >= 999 ? 'Unlimited' : `${plan.max_storage_gb} GB`) : null },
+                      ].filter(r => r.value !== null).map((row, fi) => (
+                        <div key={fi} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${isPremium ? 'text-emerald-400' : 'text-emerald-500'}`} />
+                            <span className={`text-xs font-medium ${isPremium ? 'text-slate-300' : 'text-slate-600'}`}>{row.label}</span>
+                          </div>
+                          <span className={`text-xs font-black ${isPremium ? 'text-white' : 'text-slate-900'}`}>{row.value}</span>
                         </div>
                       ))}
+
+                      {/* Feature toggles */}
+                      <div className={`mt-3 pt-3 border-t ${isPremium ? 'border-white/10' : 'border-slate-100'} grid grid-cols-2 gap-1.5`}>
+                        {[
+                          { label: 'Billing', on: plan.enable_billing },
+                          { label: 'Calendar', on: plan.enable_calendar },
+                          { label: 'Documents', on: plan.enable_documents },
+                          { label: 'Reports', on: plan.enable_reports },
+                          { label: 'API Access', on: plan.enable_api_access },
+                        ].map((f, fi) => (
+                          <div key={fi} className="flex items-center gap-1.5">
+                            {f.on
+                              ? <CheckCircle2 className={`w-3 h-3 shrink-0 ${isPremium ? 'text-emerald-400' : 'text-emerald-500'}`} />
+                              : <X className={`w-3 h-3 shrink-0 ${isPremium ? 'text-slate-600' : 'text-slate-300'}`} />
+                            }
+                            <span className={`text-[11px] font-medium ${f.on ? (isPremium ? 'text-slate-200' : 'text-slate-700') : (isPremium ? 'text-slate-500' : 'text-slate-400')}`}>
+                              {f.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div className={`mt-6 pt-5 border-t ${isPremium ? 'border-white/10' : 'border-slate-100'}`}>

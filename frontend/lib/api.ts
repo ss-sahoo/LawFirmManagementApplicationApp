@@ -92,6 +92,7 @@ export const API = {
   BILLING: {
     FINANCE_OVERVIEW: {
       DASHBOARD: "/api/billing/finance-overview/dashboard/",
+      MONTHLY_REPORT: (year: number) => `/api/billing/finance-overview/monthly_report/?year=${year}`,
     },
     INVOICES: {
       LIST: "/api/billing/invoices/",
