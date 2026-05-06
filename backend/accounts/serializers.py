@@ -122,13 +122,22 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         # Verify phone number is verified via OTP
         from django.core.cache import cache
-        cache_key = f'phone_otp_{phone_number}'
-        otp_data = cache.get(cache_key)
+        from django.conf import settings
         
-        if not otp_data or not otp_data.get('verified'):
-            raise serializers.ValidationError({
-                'phone_number': 'Phone number must be verified before registration. Please verify your phone number first.'
-            })
+        # Skip phone verification in TEST MODE
+        if not getattr(settings, 'OTP_TEST_MODE', False):
+            cache_key = f'phone_otp_{phone_number}'
+            otp_data = cache.get(cache_key)
+            
+            if not otp_data or not otp_data.get('verified'):
+                raise serializers.ValidationError({
+                    'phone_number': 'Phone number must be verified before registration. Please verify your phone number first.'
+                })
+        else:
+            # In TEST MODE, still check cache but don't fail if not found
+            cache_key = f'phone_otp_{phone_number}'
+            otp_data = cache.get(cache_key)
+            print(f"[TEST MODE] Phone verification check for {phone_number}: {otp_data}")
 
         # Check if firm signup is attempted
         firm_name = data.get('firm_name')
