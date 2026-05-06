@@ -11,6 +11,7 @@ class CalendarEventSerializer(serializers.ModelSerializer):
     case_number = serializers.CharField(source='case.case_number', read_only=True)
     client = ClientField(required=False, allow_null=True)
     client_name = serializers.CharField(source='client.get_full_name', read_only=True)
+    firm_name = serializers.CharField(source='firm.firm_name', read_only=True)
     is_upcoming = serializers.BooleanField(read_only=True)
     is_past = serializers.BooleanField(read_only=True)
     is_today = serializers.BooleanField(read_only=True)
@@ -20,13 +21,37 @@ class CalendarEventSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'event_type', 'priority', 'status',
             'start_datetime', 'end_datetime', 'all_day', 'location', 'court_name',
-            'firm', 'case', 'case_title', 'case_number', 'client', 'client_name',
+            'firm', 'firm_name', 'case', 'case_title', 'case_number', 'client', 'client_name',
             'created_by', 'created_by_name', 'assigned_to', 'assigned_to_details',
             'reminder_sent', 'reminder_time', 'notes',
             'is_upcoming', 'is_past', 'is_today',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'firm', 'created_by', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+
+class PlatformOwnerEventSerializer(serializers.ModelSerializer):
+    """Serializer for platform owner — firm is writable"""
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    firm_name = serializers.CharField(source='firm.firm_name', read_only=True)
+    client = ClientField(required=False, allow_null=True)
+    client_name = serializers.CharField(source='client.get_full_name', read_only=True)
+    is_upcoming = serializers.BooleanField(read_only=True)
+    is_past = serializers.BooleanField(read_only=True)
+    is_today = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = CalendarEvent
+        fields = [
+            'id', 'title', 'description', 'event_type', 'priority', 'status',
+            'start_datetime', 'end_datetime', 'all_day', 'location', 'court_name',
+            'firm', 'firm_name', 'case', 'client', 'client_name',
+            'created_by', 'created_by_name', 'assigned_to',
+            'reminder_sent', 'reminder_time', 'notes',
+            'is_upcoming', 'is_past', 'is_today',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
 
 class CalendarEventListSerializer(serializers.ModelSerializer):
