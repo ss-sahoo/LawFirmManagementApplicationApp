@@ -120,6 +120,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if CustomUser.objects.filter(phone_number=phone_number).exists():
             raise serializers.ValidationError({'phone_number': 'A user with this phone number already exists.'})
 
+        # Verify phone number is verified via OTP
+        from django.core.cache import cache
+        cache_key = f'phone_otp_{phone_number}'
+        otp_data = cache.get(cache_key)
+        
+        if not otp_data or not otp_data.get('verified'):
+            raise serializers.ValidationError({
+                'phone_number': 'Phone number must be verified before registration. Please verify your phone number first.'
+            })
+
         # Check if firm signup is attempted
         firm_name = data.get('firm_name')
         if firm_name:
@@ -200,9 +210,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             firm=firm,
             password=validated_data['password'],
             password_set=True,
+            is_phone_verified=True,  # Mark as verified since OTP was checked
             **{k: v for k, v in validated_data.items() 
                if k not in ['email', 'phone_number', 'first_name', 'last_name', 'password']}
         )
+        
+        # Clear the OTP cache after successful registration
+        from django.core.cache import cache
+        cache_key = f'phone_otp_{validated_data["phone_number"]}'
+        cache.delete(cache_key)
         
         # Create login credential
         LoginCredential.objects.create(
