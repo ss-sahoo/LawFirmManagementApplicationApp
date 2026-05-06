@@ -8,13 +8,18 @@ import Link from 'next/link';
 
 interface Paralegal {
   id: string;
-  paralegal: {
+  // nested object shape (ideal)
+  paralegal?: {
     id: string;
     first_name: string;
     last_name: string;
     email: string;
     phone_number: string;
   };
+  // flat shape returned by the API
+  paralegal_name?: string;
+  paralegal_email?: string;
+  paralegal_phone?: string;
   assigned_at?: string;
 }
 
@@ -105,30 +110,39 @@ export default function AdvocateParalegalsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {paralegals.map((item) => {
-            const p = item.paralegal;
-            const initials = `${p.first_name?.[0] || ''}${p.last_name?.[0] || ''}`.toUpperCase();
+            // Support both nested object and flat API response shapes
+            const p = item.paralegal && typeof item.paralegal === 'object'
+              ? item.paralegal
+              : null;
+            const fullName = p
+              ? `${p.first_name || ''} ${p.last_name || ''}`.trim()
+              : (item.paralegal_name || 'Paralegal');
+            const email = p ? p.email : item.paralegal_email;
+            const phone = p ? p.phone_number : item.paralegal_phone;
+            const nameParts = fullName.split(' ');
+            const initials = (nameParts[0]?.[0] || '') + (nameParts[1]?.[0] || '');
             return (
               <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-[#2d0b25]/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-[#2d0b25]">{initials || <Users className="w-5 h-5" />}</span>
+                    <span className="text-sm font-bold text-[#2d0b25]">{initials.toUpperCase() || <Users className="w-5 h-5" />}</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{p.first_name} {p.last_name}</p>
+                    <p className="font-bold text-gray-900 truncate">{fullName}</p>
                     <span className="text-xs font-semibold text-[#2d0b25] bg-[#2d0b25]/10 px-2 py-0.5 rounded-full">Paralegal</span>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {p.email && (
+                  {email && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Mail className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span className="truncate">{p.email}</span>
+                      <span className="truncate">{email}</span>
                     </div>
                   )}
-                  {p.phone_number && (
+                  {phone && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>{p.phone_number}</span>
+                      <span>{phone}</span>
                     </div>
                   )}
                 </div>

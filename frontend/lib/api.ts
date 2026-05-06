@@ -97,6 +97,7 @@ export const API = {
       LIST: "/api/billing/invoices/",
       CREATE: "/api/billing/invoices/",
       DETAIL: (id: string) => `/api/billing/invoices/${id}/`,
+      MY_INVOICES: "/api/billing/invoices/my_invoices/",
       STATS: "/api/billing/invoices/stats/",
       OVERDUE: "/api/billing/invoices/overdue/",
       UNPAID: "/api/billing/invoices/unpaid/",

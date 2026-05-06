@@ -6,10 +6,10 @@ import ProfessionalBillingHub from '@/components/platform/ProfessionalBillingHub
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
+import InvoiceViewModal from '@/components/InvoiceViewModal';
 import {
   AlertCircle, List, User, FileText, Receipt,
-  CreditCard, CheckCircle2, Clock, IndianRupee, Loader2, X, Search,
-  ChevronLeft, ChevronRight,
+  CheckCircle2, Clock, IndianRupee, Search,
 } from 'lucide-react';
 
 type ViewType = 'all' | 'my_entries' | 'unbilled';
@@ -32,21 +32,52 @@ export default function AdvocateBillingPage() {
   const [activeSection, setActiveSection] = useState<'timesheet' | 'my_invoices'>('timesheet');
   const { entries, loading, error } = useTimeEntries(viewType);
 
-  // Advocate invoices state
+  // Advocate invoices state — combines AdvocateInvoices + client Invoices assigned to this advocate
   const [advInvoices, setAdvInvoices] = useState<any[]>([]);
   const [advLoading, setAdvLoading] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  const [selectedDetail, setSelectedDetail] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'submitted' | 'approved' | 'paid'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'submitted' | 'approved' | 'paid' | 'sent'>('all');
+
+  const openInvoice = async (inv: any) => {
+    setSelected(inv);
+    setSelectedDetail(null);
+    setDetailLoading(true);
+    try {
+      // inv._type tells us which endpoint to hit
+      const url = inv._type === 'client'
+        ? API.BILLING.INVOICES.DETAIL(inv.id)
+        : API.BILLING.ADVOCATE_INVOICES.DETAIL(inv.id);
+      const res = await customFetch(url);
+      if (res.ok) setSelectedDetail(await res.json());
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const fetchAdvInvoices = async () => {
     setAdvLoading(true);
     try {
-      const res = await customFetch(API.BILLING.ADVOCATE_INVOICES.MY_INVOICES);
-      if (res.ok) {
-        const data = await res.json();
-        setAdvInvoices(Array.isArray(data) ? data : (data.results || []));
-      }
+      // Fetch both advocate invoices and client invoices in parallel
+      const [advRes, clientRes] = await Promise.all([
+        customFetch(API.BILLING.ADVOCATE_INVOICES.MY_INVOICES),
+        customFetch(API.BILLING.INVOICES.MY_INVOICES),
+      ]);
+      const advData = advRes.ok ? await advRes.json() : [];
+      const clientData = clientRes.ok ? await clientRes.json() : [];
+
+      const advList = (Array.isArray(advData) ? advData : (advData.results || []))
+        .map((i: any) => ({ ...i, _type: 'advocate' }));
+      const clientList = (Array.isArray(clientData) ? clientData : (clientData.results || []))
+        .map((i: any) => ({ ...i, _type: 'client' }));
+
+      // Merge and sort by invoice_date descending
+      const merged = [...advList, ...clientList].sort(
+        (a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime()
+      );
+      setAdvInvoices(merged);
     } finally {
       setAdvLoading(false);
     }
@@ -65,7 +96,7 @@ export default function AdvocateBillingPage() {
 
   const totalEarned = advInvoices.filter(i => i.status === 'paid')
     .reduce((s, i) => s + parseFloat(i.total_amount || 0), 0);
-  const totalPending = advInvoices.filter(i => ['submitted', 'approved'].includes(i.status))
+  const totalPending = advInvoices.filter(i => ['submitted', 'approved', 'sent'].includes(i.status))
     .reduce((s, i) => s + parseFloat(i.total_amount || 0), 0);
 
   return (
@@ -150,7 +181,7 @@ export default function AdvocateBillingPage() {
                   className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 placeholder:text-gray-400" />
               </div>
               <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 text-xs font-bold">
-                {(['all', 'draft', 'submitted', 'approved', 'paid'] as const).map(f => (
+                {(['all', 'draft', 'submitted', 'approved', 'sent', 'paid'] as const).map(f => (
                   <button key={f} onClick={() => setStatusFilter(f)}
                     className={`px-3 py-1.5 rounded-lg capitalize transition-all ${statusFilter === f ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
                     {f}
@@ -164,7 +195,8 @@ export default function AdvocateBillingPage() {
                 <thead>
                   <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                     <th className="px-6 py-3">Invoice #</th>
-                    <th className="px-4 py-3">Period</th>
+                    <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">Period / Client</th>
                     <th className="px-4 py-3 text-right">Amount</th>
                     <th className="px-4 py-3 text-center">Status</th>
                     <th className="px-6 py-3">Notes</th>
@@ -187,13 +219,20 @@ export default function AdvocateBillingPage() {
                       </td>
                     </tr>
                   ) : displayed.map(inv => (
-                    <tr key={inv.id} onClick={() => setSelected(inv)}
+                    <tr key={inv.id} onClick={() => openInvoice(inv)}
                       className={`hover:bg-gray-50/50 cursor-pointer transition-colors ${selected?.id === inv.id ? 'bg-blue-50/40' : ''}`}>
                       <td className="px-6 py-4 text-sm font-bold text-gray-900">{inv.invoice_number}</td>
+                      <td className="px-4 py-4">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${inv._type === 'client' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {inv._type === 'client' ? 'Client' : 'Advocate'}
+                        </span>
+                      </td>
                       <td className="px-4 py-4 text-sm text-gray-600">
-                        <span>{inv.period_start}</span>
-                        <span className="text-gray-400 mx-1">→</span>
-                        <span>{inv.period_end}</span>
+                        {inv._type === 'advocate' ? (
+                          <><span>{inv.period_start}</span><span className="text-gray-400 mx-1">→</span><span>{inv.period_end}</span></>
+                        ) : (
+                          <span>{inv.client_name || inv.case_title || '—'}</span>
+                        )}
                       </td>
                       <td className="px-4 py-4 text-sm font-bold text-gray-900 text-right">{fmt(parseFloat(inv.total_amount || 0))}</td>
                       <td className="px-4 py-4 text-center">
@@ -211,65 +250,14 @@ export default function AdvocateBillingPage() {
         </div>
       )}
 
-      {/* Invoice detail modal */}
+      {/* Invoice view modal */}
       {selected && activeSection === 'my_invoices' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-gray-900">{selected.invoice_number}</h2>
-                <p className="text-sm text-gray-500 mt-0.5">{selected.period_start} → {selected.period_end}</p>
-              </div>
-              <button onClick={() => setSelected(null)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Total Amount', value: fmt(parseFloat(selected.total_amount || 0)) },
-                  { label: 'Tax', value: `${selected.tax_percentage}% = ${fmt(parseFloat(selected.tax_amount || 0))}` },
-                  { label: 'Status', value: selected.status.toUpperCase() },
-                  { label: 'Invoice Date', value: selected.invoice_date },
-                ].map((item, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{item.label}</p>
-                    <p className="text-sm font-black text-gray-900">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {selected.status === 'approved' && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <p className="text-sm font-semibold text-emerald-700">
-                    This invoice has been approved. Payment will be processed by the firm.
-                  </p>
-                </div>
-              )}
-              {selected.status === 'paid' && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
-                  <IndianRupee className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <p className="text-sm font-semibold text-emerald-700">
-                    Payment received on {selected.paid_date || 'N/A'} via {selected.payment_method || 'N/A'}.
-                  </p>
-                </div>
-              )}
-              {selected.status === 'rejected' && (
-                <div className="bg-red-50 border border-red-100 rounded-xl p-4">
-                  <p className="text-sm font-bold text-red-700 mb-1">Rejected</p>
-                  <p className="text-sm text-red-600">{selected.rejection_reason || 'No reason provided.'}</p>
-                </div>
-              )}
-              {selected.notes && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Notes</p>
-                  <p className="text-sm text-gray-700">{selected.notes}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <InvoiceViewModal
+          invoice={selectedDetail || selected}
+          loading={detailLoading}
+          type={selected._type === 'advocate' ? 'advocate' : 'client'}
+          onClose={() => { setSelected(null); setSelectedDetail(null); }}
+        />
       )}
     </div>
   );

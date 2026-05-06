@@ -277,6 +277,29 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
+    def my_invoices(self, request):
+        """
+        Get client invoices where the current advocate is assigned.
+        Used by advocates to see invoices the platform owner/firm created for their clients.
+        GET /api/billing/invoices/my_invoices/
+        """
+        user = request.user
+        if user.user_type != 'advocate':
+            return Response({'error': 'Only advocates can access this endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+        invoices = Invoice.objects.filter(
+            Q(case__assigned_advocate=user) |
+            Q(created_by=user)
+        ).distinct()
+
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            invoices = invoices.filter(status=status_filter)
+
+        serializer = InvoiceListSerializer(invoices, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
     def overdue(self, request):
         """Get overdue invoices"""
         invoices = self.get_queryset().filter(

@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { useTopbarTitle } from '@/components/platform/TopbarContext';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
+import InvoiceViewModal from '@/components/InvoiceViewModal';
 import {
   FileText, Search, IndianRupee, Clock, CheckCircle2,
-  AlertCircle, ChevronLeft, ChevronRight, Loader2, X, CreditCard,
-  Calendar, Download,
+  AlertCircle, ChevronLeft, ChevronRight, Loader2, CreditCard,
 } from 'lucide-react';
 
 const STATUS_STYLE: Record<string, string> = {
@@ -30,11 +30,25 @@ export default function ClientInvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const [selectedDetail, setSelectedDetail] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [paying, setPaying] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'unpaid' | 'paid' | 'overdue'>('all');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+
+  const openInvoice = async (inv: any) => {
+    setSelected(inv);
+    setSelectedDetail(null);
+    setDetailLoading(true);
+    try {
+      const res = await customFetch(API.BILLING.INVOICES.DETAIL(inv.id));
+      if (res.ok) setSelectedDetail(await res.json());
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -184,7 +198,7 @@ export default function ClientInvoicesPage() {
                   </td>
                 </tr>
               ) : displayed.map(inv => (
-                <tr key={inv.id} onClick={() => setSelected(inv)}
+                <tr key={inv.id} onClick={() => openInvoice(inv)}
                   className={`hover:bg-gray-50/50 cursor-pointer transition-colors ${selected?.id === inv.id ? 'bg-blue-50/40' : ''}`}>
                   <td className="px-6 py-4 text-sm font-bold text-gray-900">{inv.invoice_number}</td>
                   <td className="px-4 py-4 text-sm text-gray-600">{inv.invoice_date}</td>
@@ -216,66 +230,14 @@ export default function ClientInvoicesPage() {
         </div>
       </div>
 
-      {/* Invoice detail panel */}
+      {/* Invoice view modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-gray-900">{selected.invoice_number}</h2>
-                <p className="text-sm text-gray-500 mt-0.5">{selected.notes}</p>
-              </div>
-              <button onClick={() => setSelected(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: 'Invoice Date', value: selected.invoice_date, icon: Calendar },
-                  { label: 'Due Date', value: selected.due_date, icon: Clock },
-                  { label: 'Total Amount', value: fmt(parseFloat(selected.total_amount || 0)), icon: IndianRupee },
-                  { label: 'Balance Due', value: fmt(parseFloat(selected.balance_due || 0)), icon: AlertCircle },
-                ].map((item, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{item.label}</p>
-                    <p className="text-base font-black text-gray-900">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <span className={`text-sm font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider ${STATUS_STYLE[selected.status] || 'bg-gray-100 text-gray-500'}`}>
-                  {selected.status}
-                </span>
-                {selected.status !== 'paid' && selected.status !== 'cancelled' && (
-                  <button onClick={() => handlePayNow(selected)} disabled={paying}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50">
-                    {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                    Pay Now — {fmt(parseFloat(selected.balance_due || 0))}
-                  </button>
-                )}
-              </div>
-
-              {selected.time_entries_detail?.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Time Entries</p>
-                  <div className="space-y-2">
-                    {selected.time_entries_detail.map((t: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center bg-gray-50 rounded-xl px-4 py-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">{t.description}</p>
-                          <p className="text-xs text-gray-400">{t.hours}h × ₹{t.hourly_rate}</p>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">{fmt(t.hours * t.hourly_rate)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <InvoiceViewModal
+          invoice={selectedDetail || selected}
+          loading={detailLoading}
+          type="client"
+          onClose={() => { setSelected(null); setSelectedDetail(null); }}
+        />
       )}
     </div>
   );
