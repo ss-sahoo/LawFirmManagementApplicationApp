@@ -1,5 +1,5 @@
-import { TeamPage } from '@/components/platform/page-templates';
+import ParalegalManagementPage from '@/components/platform/ParalegalManagementPage';
 
 export default function FirmAdminParalegalUsersPage() {
-  return <TeamPage accent="#2a4365" viewBase="/firm-admin/users/paralegal" />;
+  return <ParalegalManagementPage accent="#2a4365" viewBase="/firm-admin/users/paralegal" />;
 }

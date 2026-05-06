@@ -96,6 +96,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     firm_logo = serializers.ImageField(required=False)
     branch_id = serializers.UUIDField(required=False)
     
+    # Optional explicit user_type (advocate, client, or super_admin)
+    user_type = serializers.ChoiceField(
+        choices=['client', 'advocate', 'super_admin'],
+        required=False,
+        write_only=True
+    )
+    
     class Meta:
         model = CustomUser
         fields = [
@@ -104,7 +111,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'address_line_2', 'city', 'state', 'country', 'postal_code',
             'firm_name', 'firm_address', 'firm_logo', 'branch_id', 'profile_image',
             'bar_council_registration', 'bar_council_state', 
-            'hourly_rate', 'consultation_fee', 'case_fee'
+            'hourly_rate', 'consultation_fee', 'case_fee', 'user_type'
         ]
     
     def validate(self, data):
@@ -165,12 +172,26 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         firm_address = validated_data.pop('firm_address', '')
         firm_logo = validated_data.pop('firm_logo', None)
         branch_id = validated_data.pop('branch_id', None)
+        explicit_user_type = validated_data.pop('user_type', None)
         
-        user_type = 'client'
+        # Determine user type
+        user_type = 'client'  # Default
         firm = None
         
-        if firm_name:
+        # Priority 1: Explicit user_type from frontend
+        if explicit_user_type:
+            user_type = explicit_user_type
+        # Priority 2: Firm name provided = super_admin
+        elif firm_name:
             user_type = 'super_admin'
+        # Priority 3: Bar council registration provided = advocate
+        else:
+            bar_council = validated_data.get('bar_council_registration', '').strip()
+            if bar_council:
+                user_type = 'advocate'
+        
+        # Create firm if super_admin
+        if user_type == 'super_admin' and firm_name:
             
             # Get trial settings
             settings = GlobalConfiguration.get_settings()
@@ -204,10 +225,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 trial_end_date=trial_end_date,
                 subscription_end_date=subscription_end_date
             )
-        
-        # Check if this is advocate registration (no firm, but has bar_council_registration)
-        if not firm_name and validated_data.get('bar_council_registration'):
-            user_type = 'advocate'
         
         user = CustomUser.objects.create_user(
             username=validated_data['email'],

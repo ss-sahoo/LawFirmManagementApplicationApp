@@ -1483,6 +1483,10 @@ class FinanceOverviewViewSet(viewsets.ViewSet):
                 
                 client_name = ci.client.get_full_name() if ci.client else '—'
                 
+                # Get the latest payment date from related payments
+                latest_payment = ci.payments.order_by('-payment_date').first()
+                payment_date = latest_payment.payment_date.isoformat() if latest_payment else None
+                
                 firm_breakdown.append({
                     'type': 'client',  # client invoice
                     'firm_name': ci.firm.firm_name if ci.firm else 'Solo Advocate',
@@ -1496,7 +1500,7 @@ class FinanceOverviewViewSet(viewsets.ViewSet):
                     'paid_amount': float(ci.paid_amount),
                     'balance_due': float(ci.balance_due),
                     'status': ci.status,
-                    'payment_date': ci.payment_date.isoformat() if ci.payment_date else None,
+                    'payment_date': payment_date,
                 })
 
         else:  # super_admin / admin

@@ -24,7 +24,12 @@ export const API = {
     CHANGE_PASSWORD: "/api/users/change_password/",
     // Phone verification endpoints
     SEND_PHONE_OTP: "/api/users/send_phone_otp/",
-    VERIFY_PHONE_OTP: "/api/users/verify_phone_otp/"
+    VERIFY_PHONE_OTP: "/api/users/verify_phone_otp/",
+    // Paralegal assignment
+    ASSIGN_PARALEGAL: "/api/users/assign_paralegal/",
+    UNASSIGN_PARALEGAL: "/api/users/unassign_paralegal/",
+    MY_PARALEGALS: "/api/users/my_paralegals/",
+    MY_ADVOCATES: "/api/users/my_advocates/"
   },
   FIRMS: {
     LIST: "/api/firms/",
