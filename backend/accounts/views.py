@@ -560,6 +560,24 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             )
         
         # ============================================================================
+        # CHECK SUBSCRIPTION LIMITS (ONLY for firm users, NOT for solo advocates)
+        # ============================================================================
+        if firm and user.user_type in ['super_admin', 'admin']:
+            # Only check limits for firm-based super_admin and admin
+            # Solo advocates are exempt from subscription limits
+            from subscriptions.utils import can_add_user
+            
+            can_add, message, upgrade_required = can_add_user(firm, user_type_to_add)
+            if not can_add:
+                return Response(
+                    {
+                        'error': message,
+                        'upgrade_required': upgrade_required
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # ============================================================================
         # NEW RESTRICTIONS (Super Admin & Branch Admin)
         # ============================================================================
         email = data.get('email')
