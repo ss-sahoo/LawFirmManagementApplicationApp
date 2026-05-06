@@ -19,28 +19,35 @@ export interface ApiCalendarEvent {
 }
 
 export const mapApiEventToCalendarEvent = (apiEvent: ApiCalendarEvent): CalendarEvent => {
-  const startDate = new Date(apiEvent.start_datetime);
-  
-  // Format time as "10:30 AM" for better precision
+  // Parse date from the ISO string without timezone shift
+  // e.g. "2026-05-06T10:00:00Z" → use the date part directly
+  const dtStr = apiEvent.start_datetime;
+  let startDate: Date;
+  if (dtStr) {
+    // Extract YYYY-MM-DD and HH:MM from the string to avoid UTC→local shift
+    const [datePart, timePart] = dtStr.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = (timePart || '00:00').split(':').map(Number);
+    startDate = new Date(year, month - 1, day, hour, minute);
+  } else {
+    startDate = new Date();
+  }
+
   const timeStr = startDate.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   });
-
-  // Map event_type to UI styles
-  // We use the raw event_type string now as ProfessionalCalendar handles them
-  const uiType = apiEvent.event_type as any;
 
   return {
     id: apiEvent.id,
     title: apiEvent.title,
     date: startDate,
     time: timeStr,
-    type: uiType,
+    type: apiEvent.event_type as any,
     caseNumber: apiEvent.case_number || apiEvent.court_name || '',
-    clientName: apiEvent.case_title || '', 
+    clientName: apiEvent.case_title || '',
     adminName: apiEvent.created_by_name || 'Admin',
-    role: apiEvent.event_type.charAt(0).toUpperCase() + apiEvent.event_type.slice(1)
+    role: apiEvent.event_type.charAt(0).toUpperCase() + apiEvent.event_type.slice(1),
   };
 };

@@ -33,6 +33,7 @@ const financeSubItems = [
   { label: 'Platform Invoices', path: '/platform-owner/finance/platform-invoices', icon: Receipt },
   { label: 'Client Invoices', path: '/platform-owner/finance/invoices', icon: FileText },
   { label: 'Subscriptions', path: '/platform-owner/finance/subscriptions', icon: CreditCard },
+  { label: 'Reports', path: '/platform-owner/finance/reports', icon: BarChart3 },
 ];
 
 export default function Sidebar() {
@@ -223,7 +224,7 @@ export default function Sidebar() {
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${financeMenuOpen ? 'rotate-180 text-[#071526]' : 'text-gray-500'}`} />
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${financeMenuOpen ? 'max-h-56 opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${financeMenuOpen ? 'max-h-72 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="ml-[22px] mt-1 mb-1 border-l-2 border-[#071526]/15 pl-3.5 space-y-0.5">
                   {financeSubItems.map(({ label, path, icon: Icon }) => {
                     const active = path === '/platform-owner/finance'

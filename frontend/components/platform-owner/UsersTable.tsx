@@ -20,9 +20,10 @@ interface User {
 
 interface Props {
   userType: 'advocate' | 'client';
+  soloOnly?: boolean;
 }
 
-export default function UsersTable({ userType }: Props) {
+export default function UsersTable({ userType, soloOnly = false }: Props) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +48,7 @@ export default function UsersTable({ userType }: Props) {
   }, [userType]);
 
   const filtered = users.filter((u) => {
+    if (soloOnly && u.firm_name) return false;
     const q = query.toLowerCase();
     return (
       `${u.first_name} ${u.last_name}`.toLowerCase().includes(q) ||
@@ -92,7 +94,10 @@ export default function UsersTable({ userType }: Props) {
             Individual {label}s
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            {users.length} total · {users.filter((u) => u.is_active).length} active
+            {soloOnly
+              ? `${users.filter(u => !u.firm_name).length} solo · ${users.filter(u => !u.firm_name && u.is_active).length} active`
+              : `${users.length} total · ${users.filter((u) => u.is_active).length} active`
+            }
           </p>
         </div>
         <div className="flex w-full items-center gap-2 rounded-xl border border-gray-100 bg-[#f7f8fa] px-3 py-2 sm:w-60 sm:focus-within:w-80 transition-[width] duration-300">

@@ -53,11 +53,16 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
                 return CalendarEvent.objects.filter(
                     Q(firm=user.firm) & (Q(created_by=user) | Q(assigned_to=user))
                 ).distinct()
-            return CalendarEvent.objects.none()
+            # Solo advocate/paralegal with no firm — see only their own events
+            return CalendarEvent.objects.filter(
+                Q(created_by=user) | Q(assigned_to=user)
+            ).distinct()
 
         elif user.user_type == 'client':
             client_profile = getattr(user, 'client_profile', None)
             if client_profile:
+                # Client sees events assigned to them OR linked to their client profile
+                # They cannot create events
                 return CalendarEvent.objects.filter(
                     Q(assigned_to=user) | Q(client=client_profile)
                 ).distinct()
@@ -68,8 +73,11 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
 
+        # Clients cannot create events
+        if user.user_type == 'client':
+            raise PermissionDenied('Clients cannot create calendar events.')
+
         if user.user_type == 'platform_owner':
-            # Platform owner must supply a firm in the request body
             firm = serializer.validated_data.get('firm')
             if not firm:
                 raise ValidationError({'firm': 'Platform owner must specify a firm when creating an event.'})
@@ -77,8 +85,7 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
             return
 
         firm = user.firm
-        if not firm:
-            raise PermissionDenied('You must be associated with a firm to create events.')
+        # Solo advocates (no firm) are allowed — firm will be null on the event
         serializer.save(created_by=user, firm=firm)
 
     # ------------------------------------------------------------------ #

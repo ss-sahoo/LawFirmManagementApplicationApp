@@ -103,7 +103,7 @@ export default function ProfessionalCalendar({
   onAddEvent,
   onEventClick
 }: ProfessionalCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 22)); 
+  const [currentDate, setCurrentDate] = useState(new Date()); 
   const [view, setView] = useState<'day' | 'week' | 'month'>('month');
 
   const getDaysInMonth = (date: Date) => {
@@ -165,7 +165,7 @@ export default function ProfessionalCalendar({
               </button>
               <button 
                 onClick={() => {
-                  const today = new Date(2026, 3, 22);
+                  const today = new Date();
                   setCurrentDate(today);
                   onDateChange?.(today);
                 }}
@@ -210,7 +210,7 @@ export default function ProfessionalCalendar({
             ))}
           </div>
 
-          <button onClick={() => onAddEvent?.(currentDate)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95">
+          <button onClick={() => onAddEvent?.(currentDate)} className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95 ${!onAddEvent ? 'hidden' : ''}`}>
             <Plus className="w-5 h-5" />
             <span>Add Event</span>
           </button>
@@ -238,9 +238,12 @@ export default function ProfessionalCalendar({
                   e.date.getMonth() === day.date.getMonth() &&
                   e.date.getFullYear() === day.date.getFullYear()
                 );
-                const isToday = day.date.getDate() === 22 && day.date.getMonth() === 3;
+                const today = new Date();
+                const isToday = day.date.getDate() === today.getDate() &&
+                  day.date.getMonth() === today.getMonth() &&
+                  day.date.getFullYear() === today.getFullYear();
                 return (
-                  <div key={idx} onClick={() => onAddEvent?.(day.date)} className={`min-h-[120px] p-2 border-r border-b border-gray-100 flex flex-col gap-1 cursor-pointer hover:bg-gray-50 transition-colors ${!day.isCurrentMonth ? 'bg-gray-50/30' : 'bg-white'}`}>
+                  <div key={idx} onClick={() => onAddEvent?.(day.date)} className={`min-h-[120px] p-2 border-r border-b border-gray-100 flex flex-col gap-1 ${onAddEvent ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'} transition-colors ${!day.isCurrentMonth ? 'bg-gray-50/30' : 'bg-white'}`}>
                     <div className="flex justify-between items-center mb-1">
                       <span className={`text-sm font-bold p-1 w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white shadow-sm' : !day.isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}`}>
                         {day.date.getDate()}
@@ -269,7 +272,10 @@ export default function ProfessionalCalendar({
               {weekDays.map((day, idx) => {
                  const date = new Date(currentDate);
                  date.setDate(currentDate.getDate() - currentDate.getDay() + idx);
-                 const isToday = date.getDate() === 22 && date.getMonth() === 3;
+                 const today = new Date();
+                 const isToday = date.getDate() === today.getDate() &&
+                   date.getMonth() === today.getMonth() &&
+                   date.getFullYear() === today.getFullYear();
                  return (
                    <div key={day} className="py-6 flex flex-col items-center gap-2 border-r border-gray-100 last:border-0">
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{day}</span>
@@ -293,7 +299,7 @@ export default function ProfessionalCalendar({
                 );
 
                 return (
-                  <div key={idx} onClick={() => onAddEvent?.(date)} className="min-h-[500px] p-3 border-r border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors flex flex-col gap-3">
+                  <div key={idx} onClick={() => onAddEvent?.(date)} className={`min-h-[500px] p-3 border-r border-gray-100 last:border-0 ${onAddEvent ? 'hover:bg-gray-50/50 cursor-pointer' : 'cursor-default'} transition-colors flex flex-col gap-3`}>
                     {dayEvents.map(event => {
                       const style = EVENT_STYLES[event.type] || EVENT_STYLES.other;
                       return (

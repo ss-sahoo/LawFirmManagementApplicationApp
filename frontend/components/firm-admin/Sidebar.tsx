@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Scale, LayoutDashboard, Briefcase, FileText,
-  UserCheck, Bell, MessageSquare, LogOut, ChevronRight, Users, ChevronDown, User, Settings, X, Calendar, CreditCard
+  UserCheck, Bell, MessageSquare, LogOut, ChevronRight, Users, ChevronDown, User, Settings, X, Calendar, CreditCard, BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTopbar } from '@/components/platform/TopbarContext';
@@ -27,8 +27,12 @@ const userSubItems = [
 ];
 
 const bottomNavItems = [
-  { label: 'Billing Center', path: '/firm-admin/billing', icon: CreditCard },
   { label: 'Messaging', path: '/firm-admin/messaging', icon: MessageSquare },
+];
+
+const billingSubItems = [
+  { label: 'Billing Center', path: '/firm-admin/billing', icon: CreditCard },
+  { label: 'Reports', path: '/firm-admin/billing/reports', icon: BarChart3 },
 ];
 
 export default function FirmAdminSidebar() {
@@ -51,11 +55,13 @@ export default function FirmAdminSidebar() {
   const [userMenuOpen, setUserMenuOpen] = useState(
     () => pathname.startsWith('/firm-admin/users')
   );
+  const [billingMenuOpen, setBillingMenuOpen] = useState(
+    () => pathname.startsWith('/firm-admin/billing')
+  );
 
   useEffect(() => {
-    if (pathname.startsWith('/firm-admin/users')) {
-      setUserMenuOpen(true);
-    }
+    if (pathname.startsWith('/firm-admin/users')) setUserMenuOpen(true);
+    if (pathname.startsWith('/firm-admin/billing')) setBillingMenuOpen(true);
   }, [pathname]);
 
   const isActive = (path: string) => pathname.startsWith(path);
@@ -139,6 +145,43 @@ export default function FirmAdminSidebar() {
             </div>
           </div>
         </div>
+
+        {/* Billing — collapsible with Reports */}
+        {(() => {
+          const billingSectionActive = pathname.startsWith('/firm-admin/billing');
+          return (
+            <div>
+              <button type="button"
+                onClick={(e) => { e.preventDefault(); setBillingMenuOpen(o => !o); }}
+                className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer w-full ${billingSectionActive ? 'bg-[#1a2a40]/10 text-[#1a2a40]' : 'text-gray-900 hover:bg-gray-50 hover:text-black'}`}>
+                {billingSectionActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#1a2a40]" />}
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${billingSectionActive ? 'bg-[#1a2a40]/15' : 'bg-gray-100 group-hover:bg-gray-200'}`}>
+                    <CreditCard className={`w-4 h-4 ${billingSectionActive ? 'text-[#1a2a40]' : 'text-gray-700 group-hover:text-gray-900'}`} />
+                  </div>
+                  <span className="text-sm font-semibold">Billing</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${billingMenuOpen ? 'rotate-180 text-[#1a2a40]' : 'text-gray-500'}`} />
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${billingMenuOpen ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="ml-[22px] mt-1 mb-1 border-l-2 border-[#1a2a40]/15 pl-3.5 space-y-0.5">
+                  {billingSubItems.map(({ label, path, icon: Icon }) => {
+                    const active = path === '/firm-admin/billing' ? pathname === '/firm-admin/billing' : pathname.startsWith(path);
+                    return (
+                      <Link key={path} href={path} onClick={closeSidebar}>
+                        <div className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer ${active ? 'bg-[#1a2a40]/8 text-[#1a2a40]' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-950'}`}>
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[#1a2a40]' : 'text-gray-600 group-hover:text-gray-900'}`} />
+                          <span className={`text-[13px] font-semibold ${active ? 'text-[#1a2a40]' : ''}`}>{label}</span>
+                          {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1a2a40]" />}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {bottomNavItems.map(({ label, path, icon: Icon }) => {
           const active = isActive(path);

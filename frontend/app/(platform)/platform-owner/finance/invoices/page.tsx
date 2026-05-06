@@ -57,13 +57,16 @@ export default function PlatformOwnerInvoicesPage() {
     }
   };
 
-  const fetchInvoiceDetail = async (id: string) => {
+  const fetchInvoiceDetail = async (id: string, type: 'client' | 'advocate' = activeTab) => {
     setDetailLoading(true);
     try {
-      const res = await customFetch(API.BILLING.INVOICES.DETAIL(id));
+      const url = type === 'advocate'
+        ? API.BILLING.ADVOCATE_INVOICES.DETAIL(id)
+        : API.BILLING.INVOICES.DETAIL(id);
+      const res = await customFetch(url);
       if (res.ok) {
         const data = await res.json();
-        setSelectedInvoice(data);
+        setSelectedInvoice({ ...data, _type: type });
         setViewMode('split');
       }
     } catch (err) {
@@ -323,7 +326,7 @@ export default function PlatformOwnerInvoicesPage() {
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => fetchInvoiceDetail(inv.id)} disabled={detailLoading}
+                            <button onClick={() => fetchInvoiceDetail(inv.id, activeTab)} disabled={detailLoading}
                               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50" title="View">
                               {detailLoading && selectedInvoice?.id === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -370,10 +373,10 @@ export default function PlatformOwnerInvoicesPage() {
               <p className="text-[13px] text-slate-500 font-semibold mb-4">{count} total records</p>
             </div>
             <div className="overflow-y-auto flex-1 p-2 space-y-1.5">
-              {invoices.map(inv => {
+              {(activeTab === 'client' ? invoices : advocateInvoices).map(inv => {
                 const isSelected = selectedInvoice?.id === inv.id;
                 return (
-                  <div key={inv.id} onClick={() => fetchInvoiceDetail(inv.id)}
+                  <div key={inv.id} onClick={() => fetchInvoiceDetail(inv.id, activeTab)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-blue-50 border-blue-600/20 shadow-sm' : 'bg-white border-transparent hover:border-slate-200 hover:bg-slate-50'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-[15px] font-black tracking-tight text-slate-900">₹{parseFloat(inv.total_amount).toLocaleString('en-IN')}</h3>
@@ -381,7 +384,9 @@ export default function PlatformOwnerInvoicesPage() {
                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${getStatusStyle(inv.status)}`}>{inv.status}</span>
                       )}
                     </div>
-                    <p className="text-[13px] font-bold text-slate-700 line-clamp-1 mb-1">{inv.client_name}</p>
+                    <p className="text-[13px] font-bold text-slate-700 line-clamp-1 mb-1">
+                      {activeTab === 'advocate' ? inv.advocate_name : inv.client_name}
+                    </p>
                     <p className="text-[11px] font-bold text-slate-400">{inv.invoice_number}</p>
                     <div className="flex justify-between items-end mt-3">
                       <p className="text-[11px] text-slate-400 font-bold">{inv.invoice_date}</p>
@@ -406,7 +411,9 @@ export default function PlatformOwnerInvoicesPage() {
                       </button>
                       <div className="flex items-center gap-3">
                         <h2 className="text-xl font-black tracking-tight text-slate-900">{selectedInvoice.invoice_number}</h2>
-                        <span className="text-[13px] font-bold text-slate-500 max-w-[280px] truncate">{selectedInvoice.client_name}</span>
+                        <span className="text-[13px] font-bold text-slate-500 max-w-[280px] truncate">
+                          {selectedInvoice._type === 'advocate' ? selectedInvoice.advocate_name : selectedInvoice.client_name}
+                        </span>
                         {getOverdueDays(selectedInvoice.due_date) > 0 && selectedInvoice.status !== 'paid' && (
                           <div className="flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-[11px] font-black border border-red-100">
                             <Clock className="w-3.5 h-3.5" /> Overdue by {getOverdueDays(selectedInvoice.due_date)} days
@@ -415,22 +422,24 @@ export default function PlatformOwnerInvoicesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled' && (
+                      {selectedInvoice._type !== 'advocate' && selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled' && (
                         <Link href={`/platform-owner/finance/invoices/new?id=${selectedInvoice.id}`}
                           className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all">
                           <Edit className="w-4 h-4" /> Edit
                         </Link>
                       )}
-                      {selectedInvoice.status === 'draft' && (
+                      {selectedInvoice._type === 'advocate' && selectedInvoice.status === 'draft' && (
                         <button onClick={() => handleSendToAdvocate(selectedInvoice)}
                           className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all border border-emerald-100">
                           <Send className="w-4 h-4" /> Send to Advocate
                         </button>
                       )}
-                      <button onClick={handleMarkPaid} disabled={selectedInvoice.status === 'paid' || selectedInvoice.status === 'cancelled'}
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all border border-green-100 disabled:opacity-50">
-                        <CreditCard className="w-4 h-4" /> Mark Paid
-                      </button>
+                      {selectedInvoice._type !== 'advocate' && (
+                        <button onClick={handleMarkPaid} disabled={selectedInvoice.status === 'paid' || selectedInvoice.status === 'cancelled'}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all border border-green-100 disabled:opacity-50">
+                          <CreditCard className="w-4 h-4" /> Mark Paid
+                        </button>
+                      )}
                       <button className="flex items-center gap-2 px-3 py-2 text-xs font-black bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100">
                         <FileDown className="w-4 h-4" /> Save PDF
                       </button>
@@ -440,19 +449,20 @@ export default function PlatformOwnerInvoicesPage() {
                   <div className="px-6 py-3 bg-slate-50/80 border-t border-slate-100 flex justify-between items-center text-[12px] font-black text-slate-500 uppercase tracking-widest">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5">Created: <span className="text-slate-900 font-bold">{selectedInvoice.invoice_date}</span></div>
-                      <span className="text-slate-300">•</span>
-                      <div className="flex items-center gap-1.5">Due: <span className="text-slate-900 font-bold">{selectedInvoice.due_date}</span></div>
+                      {selectedInvoice._type === 'advocate' ? (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <div className="flex items-center gap-1.5">Period: <span className="text-slate-900 font-bold">{selectedInvoice.period_start} → {selectedInvoice.period_end}</span></div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <div className="flex items-center gap-1.5">Due: <span className="text-slate-900 font-bold">{selectedInvoice.due_date}</span></div>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-8 normal-case tracking-normal">
                       <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold">Paid:</span>
-                        <span className="text-green-600 font-black text-[14px]">₹{parseFloat(selectedInvoice.paid_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold">Due:</span>
-                        <span className="text-red-500 font-black text-[14px]">₹{parseFloat(selectedInvoice.balance_due || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2">
                         <span className="text-[12px] font-bold text-slate-700 uppercase tracking-wider">Total:</span>
                         <span className="text-slate-900 font-black text-lg">₹{parseFloat(selectedInvoice.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
@@ -467,26 +477,58 @@ export default function PlatformOwnerInvoicesPage() {
                         data={{
                           number: selectedInvoice.invoice_number,
                           date: selectedInvoice.invoice_date,
-                          due: selectedInvoice.due_date,
+                          due: selectedInvoice._type === 'advocate' ? selectedInvoice.period_end : selectedInvoice.due_date,
                           currency: 'INR',
-                          to: { name: selectedInvoice.client_name },
+                          to: {
+                            name: selectedInvoice._type === 'advocate'
+                              ? (selectedInvoice.firm_name || '—')
+                              : (selectedInvoice.client_name || '—'),
+                            email: selectedInvoice._type === 'advocate'
+                              ? (selectedInvoice.firm_email || '')
+                              : (selectedInvoice.client_email || ''),
+                          },
                           taxTypes: {},
                           discountMode: 'AMOUNT',
                           discountAmountManual: Number(selectedInvoice.discount_amount) || 0,
-                          notes: selectedInvoice.notes,
-                          terms: selectedInvoice.terms_and_conditions,
-                          items: [
-                            ...(selectedInvoice.time_entries_detail || []).map((t: any) => ({
-                              id: t.id, name: t.description,
-                              desc: `Activity: ${t.activity_type}`,
-                              qty: Number(t.hours), price: Number(t.hourly_rate),
-                            })),
-                            ...(selectedInvoice.expenses_detail || []).map((e: any) => ({
-                              id: e.id, name: e.description,
-                              desc: `Expense: ${e.expense_type}`,
-                              qty: 1, price: Number(e.amount),
-                            })),
-                          ],
+                          notes: selectedInvoice.notes || '',
+                          terms: selectedInvoice._type === 'advocate'
+                            ? 'Please process payment upon approval.'
+                            : (selectedInvoice.terms_and_conditions || 'Please pay within 30 days.'),
+                          items: selectedInvoice._type === 'advocate'
+                            ? (selectedInvoice.time_entries_detail?.length
+                                ? selectedInvoice.time_entries_detail.map((t: any) => ({
+                                    id: t.id, name: t.activity_type || 'Service',
+                                    desc: t.description, qty: Number(t.hours), price: Number(t.hourly_rate),
+                                  }))
+                                : [{ id: 1, name: 'Professional Services',
+                                    desc: `Billing Period: ${selectedInvoice.period_start} to ${selectedInvoice.period_end}`,
+                                    qty: 1, price: Number(selectedInvoice.subtotal || selectedInvoice.total_amount || 0) }])
+                            : [
+                                ...(selectedInvoice.time_entries_detail || []).map((t: any) => ({
+                                  id: t.id, name: t.description,
+                                  desc: `Activity: ${t.activity_type}`,
+                                  qty: Number(t.hours), price: Number(t.hourly_rate),
+                                })),
+                                ...(selectedInvoice.expenses_detail || []).map((e: any) => ({
+                                  id: e.id, name: e.description,
+                                  desc: `Expense: ${e.expense_type}`,
+                                  qty: 1, price: Number(e.amount),
+                                })),
+                                ...(!selectedInvoice.time_entries_detail?.length && !selectedInvoice.expenses_detail?.length
+                                  ? [{ id: 1, name: selectedInvoice.case_title || 'Legal Services',
+                                      desc: `Invoice for ${selectedInvoice.client_name || 'Client'}`,
+                                      qty: 1, price: Number(selectedInvoice.subtotal || selectedInvoice.total_amount || 0) }]
+                                  : []),
+                              ],
+                        }}
+                        profile={{
+                          company: selectedInvoice._type === 'advocate'
+                            ? (selectedInvoice.advocate_name || 'Advocate')
+                            : (selectedInvoice.firm_name || 'Law Firm'),
+                          email: selectedInvoice._type === 'advocate'
+                            ? (selectedInvoice.advocate_email || '')
+                            : (selectedInvoice.firm_email || ''),
+                          address: '',
                         }}
                         subtotal={parseFloat(selectedInvoice.subtotal) || 0}
                         perLineTax={[]}
@@ -498,7 +540,7 @@ export default function PlatformOwnerInvoicesPage() {
                         showTotals={true}
                         paymentInfo={{
                           paid_amount: parseFloat(selectedInvoice.paid_amount) || 0,
-                          outstanding_amount: parseFloat(selectedInvoice.balance_due) || 0,
+                          outstanding_amount: parseFloat(selectedInvoice.balance_due || selectedInvoice.total_amount) || 0,
                         }}
                       />
                     </div>

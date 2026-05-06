@@ -1381,3 +1381,83 @@ class FinanceOverviewViewSet(viewsets.ViewSet):
                 pass
         
         return Response(response_data)
+
+    @action(detail=False, methods=['get'])
+    def monthly_report(self, request):
+        """
+        GET /api/billing/finance-overview/monthly_report/?year=2026
+        Returns month-wise financial breakdown for the given year.
+        Gated by enable_reports on the firm's subscription plan.
+        """
+        from decimal import Decimal
+        from subscriptions.models import FirmSubscription, PlatformInvoice
+
+        user = request.user
+
+        # Plan gating for firm users
+        if user.user_type in ['super_admin', 'admin']:
+            try:
+                sub = FirmSubscription.objects.select_related('plan').get(firm=user.firm)
+                if not sub.plan.enable_reports:
+                    return Response(
+                        {'error': 'Reports are not available on your current plan. Please upgrade to access this feature.', 'upgrade_required': True},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except FirmSubscription.DoesNotExist:
+                return Response({'error': 'No active subscription found.', 'upgrade_required': True}, status=status.HTTP_403_FORBIDDEN)
+
+        year = int(request.query_params.get('year', timezone.now().year))
+
+        MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        if user.user_type == 'platform_owner':
+            platform_invoices = PlatformInvoice.objects.filter(invoice_date__year=year)
+            adv_invoices = AdvocateInvoice.objects.filter(invoice_date__year=year)
+            client_invoices = Invoice.objects.filter(invoice_date__year=year)
+
+            monthly = []
+            for i, month in enumerate(MONTHS, 1):
+                rev = float(platform_invoices.filter(invoice_date__month=i, status='paid').aggregate(t=Sum('total_amount'))['t'] or 0)
+                client_rev = float(client_invoices.filter(invoice_date__month=i, status='paid').aggregate(t=Sum('total_amount'))['t'] or 0)
+                exp = float(adv_invoices.filter(invoice_date__month=i, status='paid').aggregate(t=Sum('total_amount'))['t'] or 0)
+                monthly.append({
+                    'month': month,
+                    'platform_revenue': rev,
+                    'client_revenue': client_rev,
+                    'total_revenue': rev + client_rev,
+                    'expenses': exp,
+                    'net_profit': rev + client_rev - exp,
+                    'invoice_count': platform_invoices.filter(invoice_date__month=i).count() + client_invoices.filter(invoice_date__month=i).count(),
+                    'paid_count': platform_invoices.filter(invoice_date__month=i, status='paid').count() + client_invoices.filter(invoice_date__month=i, status='paid').count(),
+                })
+
+        else:  # super_admin / admin
+            firm = user.firm
+            inv_qs = Invoice.objects.filter(firm=firm, invoice_date__year=year)
+            exp_qs = Expense.objects.filter(firm=firm, date__year=year)
+            adv_qs = AdvocateInvoice.objects.filter(firm=firm, invoice_date__year=year)
+
+            monthly = []
+            for i, month in enumerate(MONTHS, 1):
+                rev = float(inv_qs.filter(invoice_date__month=i, status='paid').aggregate(t=Sum('total_amount'))['t'] or 0)
+                exp = float(exp_qs.filter(date__month=i).aggregate(t=Sum('amount'))['t'] or 0)
+                adv_exp = float(adv_qs.filter(invoice_date__month=i, status='paid').aggregate(t=Sum('total_amount'))['t'] or 0)
+                total_exp = exp + adv_exp
+                monthly.append({
+                    'month': month,
+                    'total_revenue': rev,
+                    'expenses': total_exp,
+                    'net_profit': rev - total_exp,
+                    'invoice_count': inv_qs.filter(invoice_date__month=i).count(),
+                    'paid_count': inv_qs.filter(invoice_date__month=i, status='paid').count(),
+                    'pending_count': inv_qs.filter(invoice_date__month=i, status__in=['sent', 'overdue', 'partially_paid']).count(),
+                })
+
+        totals = {
+            'total_revenue': sum(m['total_revenue'] for m in monthly),
+            'expenses': sum(m['expenses'] for m in monthly),
+            'net_profit': sum(m['net_profit'] for m in monthly),
+        }
+
+        return Response({'year': year, 'monthly': monthly, 'totals': totals})

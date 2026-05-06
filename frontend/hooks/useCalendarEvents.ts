@@ -3,7 +3,7 @@ import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
 import { mapApiEventToCalendarEvent, ApiCalendarEvent } from '@/lib/calendar-utils';
 
-export function useCalendarEvents(initialDate: Date = new Date(2026, 3, 22), initialView: 'day' | 'week' | 'month' = 'month') {
+export function useCalendarEvents(initialDate: Date = new Date(), initialView: 'day' | 'week' | 'month' = 'month') {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
