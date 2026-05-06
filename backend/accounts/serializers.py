@@ -103,6 +103,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
+    # Accept bar_council_id as alias for bar_council_registration (for backward compatibility)
+    bar_council_id = serializers.CharField(required=False, write_only=True)
+    
     class Meta:
         model = CustomUser
         fields = [
@@ -110,11 +113,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'password_confirm', 'date_of_birth', 'gender', 'address_line_1',
             'address_line_2', 'city', 'state', 'country', 'postal_code',
             'firm_name', 'firm_address', 'firm_logo', 'branch_id', 'profile_image',
-            'bar_council_registration', 'bar_council_state', 
+            'bar_council_registration', 'bar_council_state', 'bar_council_id',
             'hourly_rate', 'consultation_fee', 'case_fee', 'user_type'
         ]
     
     def validate(self, data):
+        # Handle bar_council_id alias (backward compatibility)
+        if 'bar_council_id' in data and data.get('bar_council_id'):
+            bar_council_value = data.pop('bar_council_id', '').strip()
+            if bar_council_value:  # Only set if not empty
+                data['bar_council_registration'] = bar_council_value
+        
         if data['password'] != data.pop('password_confirm'):
             raise serializers.ValidationError({'password': 'Passwords do not match'})
         
@@ -178,6 +187,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user_type = 'client'  # Default
         firm = None
         
+        # Debug logging
+        bar_council = validated_data.get('bar_council_registration', '').strip()
+        print(f"[REGISTRATION DEBUG] explicit_user_type: {explicit_user_type}, firm_name: {firm_name}, bar_council: '{bar_council}'")
+        
         # Priority 1: Explicit user_type from frontend
         if explicit_user_type:
             user_type = explicit_user_type
@@ -185,10 +198,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         elif firm_name:
             user_type = 'super_admin'
         # Priority 3: Bar council registration provided = advocate
-        else:
-            bar_council = validated_data.get('bar_council_registration', '').strip()
-            if bar_council:
-                user_type = 'advocate'
+        elif bar_council:
+            user_type = 'advocate'
+        
+        print(f"[REGISTRATION DEBUG] Determined user_type: {user_type}")
         
         # Create firm if super_admin
         if user_type == 'super_admin' and firm_name:
