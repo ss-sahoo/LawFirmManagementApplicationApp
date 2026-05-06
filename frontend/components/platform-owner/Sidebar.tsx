@@ -11,7 +11,7 @@ import {
   Scale, LayoutDashboard, Building2, BarChart3,
   Settings, ChevronRight, LogOut, Users,
   TrendingUp, ChevronDown, UserCheck, CreditCard,
-  ShieldCheck, X, IndianRupee, FileText, Receipt
+  ShieldCheck, X, IndianRupee, FileText, Receipt, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTopbar } from '@/components/platform/TopbarContext';
@@ -26,6 +26,7 @@ const userSubItems = [
 
 const navItems = [
   { label: 'Dashboard', path: '/platform-owner', icon: LayoutDashboard },
+  { label: 'Calendar', path: '/platform-owner/calendar', icon: Calendar },
 ];
 
 const financeSubItems = [
@@ -122,12 +123,11 @@ export default function Sidebar() {
           </span>
         </div>
 
-        {/* Dashboard */}
-        {(() => {
-          const { label, path, icon: Icon } = navItems[0];
+        {/* Main Nav Items */}
+        {navItems.map(({ label, path, icon: Icon }) => {
           const active = isActive(path);
           return (
-            <Link href={path} onClick={closeSidebar}>
+            <Link key={path} href={path} onClick={closeSidebar}>
               <div className={navRow(active)}>
                 {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-[#071526]" />}
                 <div className="flex items-center gap-3">
@@ -138,7 +138,7 @@ export default function Sidebar() {
               </div>
             </Link>
           );
-        })()}
+        })}
 
         {/* Firms */}
         {(() => {

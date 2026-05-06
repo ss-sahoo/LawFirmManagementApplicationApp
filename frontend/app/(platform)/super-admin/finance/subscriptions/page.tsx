@@ -354,8 +354,8 @@ export default function SubscriptionsPage() {
                         <span className="text-2xl font-black text-slate-900">{currentSub.days_left}<span className="text-base font-bold text-slate-400"> days</span></span>
                         <span className="text-sm font-semibold text-slate-500">out of 30</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${(currentSub.days_left/30)*100}%` }}></div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
+                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, (currentSub.days_left/30)*100)}%` }}></div>
                       </div>
                       <p className="text-xs font-semibold text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" /> Cycle resets soon</p>
                     </div>
@@ -373,8 +373,8 @@ export default function SubscriptionsPage() {
                         <span className="text-2xl font-black text-slate-900">{currentSub.users_added}<span className="text-base font-bold text-slate-400"> added</span></span>
                         <span className="text-sm font-semibold text-slate-500">out of {currentSub.max_users}</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${(currentSub.users_added / currentSub.max_users) * 100}%` }}></div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
+                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${Math.min(100, (currentSub.users_added / currentSub.max_users) * 100)}%` }}></div>
                       </div>
                       <p className="text-xs font-semibold text-slate-400">You are using {Math.round((currentSub.users_added / currentSub.max_users) * 100)}% of your limit</p>
                     </div>
@@ -392,8 +392,8 @@ export default function SubscriptionsPage() {
                         <span className="text-2xl font-black text-slate-900">{currentSub.storage_gb}<span className="text-base font-bold text-slate-400"> GB</span></span>
                         <span className="text-sm font-semibold text-slate-500">of {currentSub.max_storage_gb} GB</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${(currentSub.storage_gb / currentSub.max_storage_gb) * 100}%` }}></div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
+                        <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${Math.min(100, (currentSub.storage_gb / currentSub.max_storage_gb) * 100)}%` }}></div>
                       </div>
                       <p className="text-xs font-semibold text-slate-400">Plenty of space remaining</p>
                     </div>

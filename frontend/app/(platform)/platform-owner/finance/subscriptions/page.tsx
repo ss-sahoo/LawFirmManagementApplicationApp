@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   CheckCircle2, X, Zap, Briefcase, Building2, Crown,
   Users, HardDrive, Calendar, CreditCard, Activity, Clock, ShieldCheck, Loader2, AlertCircle, Search
@@ -133,12 +134,13 @@ export default function PlatformOwnerSubscriptionsPage() {
                     <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Start Date</th>
                     <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">End Date</th>
                     <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Amount</th>
+                    <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredFirms.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-16 text-center text-slate-400 text-sm font-medium">
+                      <td colSpan={7} className="py-16 text-center text-slate-400 text-sm font-medium">
                         {search ? 'No firms match your search' : 'No firm subscriptions found'}
                       </td>
                     </tr>
@@ -159,6 +161,14 @@ export default function PlatformOwnerSubscriptionsPage() {
                       <td className="py-4 px-6 text-sm text-slate-600 font-medium">{sub.end_date || '—'}</td>
                       <td className="py-4 px-6 text-sm font-black text-slate-900 text-right">
                         {sub.amount ? `₹${parseFloat(sub.amount).toLocaleString('en-IN')}` : '—'}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <Link
+                          href={`/platform-owner/firms/${sub.firm}?tab=billing`}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          View Details
+                        </Link>
                       </td>
                     </tr>
                   ))}
