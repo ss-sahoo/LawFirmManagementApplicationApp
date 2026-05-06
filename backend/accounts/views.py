@@ -190,6 +190,177 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_name='send_phone_otp')
+    def send_phone_otp(self, request):
+        """
+        Send OTP to phone number for verification
+        POST /api/accounts/users/send_phone_otp/
+        Body: { "phone_number": "+919876543210", "purpose": "registration" or "update" }
+        """
+        phone_number = request.data.get('phone_number')
+        purpose = request.data.get('purpose', 'registration')
+        
+        if not phone_number:
+            return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if phone already exists (for registration)
+        if purpose == 'registration':
+            if CustomUser.objects.filter(phone_number=phone_number).exists():
+                return Response(
+                    {'error': 'This phone number is already registered'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Generate and send OTP
+        otp_code = generate_otp()
+        expires_at = timezone.now() + timedelta(minutes=10)
+        
+        # Store OTP in cache for registration, or in DB for profile update
+        if purpose == 'registration':
+            from django.core.cache import cache
+            cache_key = f'phone_otp_{phone_number}'
+            cache.set(cache_key, {
+                'otp': otp_code,
+                'expires_at': expires_at.isoformat(),
+                'attempts': 0,
+                'verified': False
+            }, timeout=600)  # 10 minutes
+        else:
+            # For profile update, user must be authenticated
+            if not request.user.is_authenticated:
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            OTPVerification.objects.create(
+                user=request.user,
+                otp_type='phone',
+                otp_code=otp_code,
+                expires_at=expires_at
+            )
+        
+        # Send SMS
+        send_otp_sms(phone_number, otp_code)
+        
+        return Response({
+            'message': f'OTP sent to {phone_number}',
+            'expires_in_minutes': 10
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_name='verify_phone_otp')
+    def verify_phone_otp(self, request):
+        """
+        Verify OTP for phone number
+        POST /api/accounts/users/verify_phone_otp/
+        Body: { "phone_number": "+919876543210", "otp": "123456", "purpose": "registration" or "update" }
+        """
+        phone_number = request.data.get('phone_number')
+        otp = request.data.get('otp')
+        purpose = request.data.get('purpose', 'registration')
+        
+        if not phone_number or not otp:
+            return Response(
+                {'error': 'Phone number and OTP are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if purpose == 'registration':
+            from django.core.cache import cache
+            cache_key = f'phone_otp_{phone_number}'
+            otp_data = cache.get(cache_key)
+            
+            if not otp_data:
+                return Response(
+                    {'error': 'OTP expired or not found. Please request a new one.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check expiry
+            expires_at = timezone.datetime.fromisoformat(otp_data['expires_at'])
+            if timezone.now() > expires_at:
+                cache.delete(cache_key)
+                return Response(
+                    {'error': 'OTP has expired. Please request a new one.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check attempts
+            if otp_data['attempts'] >= 5:
+                cache.delete(cache_key)
+                return Response(
+                    {'error': 'Maximum verification attempts exceeded. Please request a new OTP.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Verify OTP
+            if otp_data['otp'] == otp:
+                otp_data['verified'] = True
+                cache.set(cache_key, otp_data, timeout=3600)  # Keep verified status for 1 hour
+                return Response({
+                    'message': 'Phone number verified successfully',
+                    'verified': True
+                }, status=status.HTTP_200_OK)
+            else:
+                otp_data['attempts'] += 1
+                cache.set(cache_key, otp_data, timeout=600)
+                remaining = 5 - otp_data['attempts']
+                return Response(
+                    {'error': f'Invalid OTP. {remaining} attempts remaining.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            # For profile update
+            if not request.user.is_authenticated:
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            try:
+                otp_record = OTPVerification.objects.filter(
+                    user=request.user,
+                    otp_type='phone',
+                    is_verified=False
+                ).latest('created_at')
+                
+                if otp_record.is_expired():
+                    return Response(
+                        {'error': 'OTP has expired. Please request a new one.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                if otp_record.attempts >= 5:
+                    return Response(
+                        {'error': 'Maximum verification attempts exceeded. Please request a new OTP.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                otp_record.attempts += 1
+                otp_record.save()
+                
+                if otp_record.otp_code == otp:
+                    otp_record.is_verified = True
+                    otp_record.save()
+                    
+                    # Update phone number if provided
+                    new_phone = request.data.get('new_phone_number')
+                    if new_phone:
+                        request.user.phone_number = new_phone
+                        request.user.is_phone_verified = True
+                        request.user.save()
+                    
+                    return Response({
+                        'message': 'Phone number verified successfully',
+                        'verified': True
+                    }, status=status.HTTP_200_OK)
+                else:
+                    remaining = 5 - otp_record.attempts
+                    return Response(
+                        {'error': f'Invalid OTP. {remaining} attempts remaining.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
+            except OTPVerification.DoesNotExist:
+                return Response(
+                    {'error': 'No OTP found. Please request a new one.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+    
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_name='add_user')
     def add_user(self, request):
         """Add user with role-based hierarchy"""
@@ -1026,6 +1197,58 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             },
             'active_in_firm': True
         })
+    
+    def update(self, request, *args, **kwargs):
+        """Override update to handle phone number changes with verification"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Check if phone number is being changed
+        new_phone = request.data.get('phone_number')
+        if new_phone and new_phone != instance.phone_number:
+            # Require phone verification for phone number changes
+            phone_verified = request.data.get('phone_verified', False)
+            
+            if not phone_verified:
+                return Response({
+                    'error': 'Phone number change requires verification. Please verify the new phone number first.',
+                    'requires_verification': True
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if OTP was verified
+            try:
+                otp_record = OTPVerification.objects.filter(
+                    user=instance,
+                    otp_type='phone',
+                    is_verified=True
+                ).latest('created_at')
+                
+                # Check if verification is recent (within last hour)
+                if (timezone.now() - otp_record.created_at).total_seconds() > 3600:
+                    return Response({
+                        'error': 'Phone verification expired. Please verify again.',
+                        'requires_verification': True
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Mark phone as verified
+                instance.is_phone_verified = True
+                
+            except OTPVerification.DoesNotExist:
+                return Response({
+                    'error': 'Phone number not verified. Please verify first.',
+                    'requires_verification': True
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update to use custom update logic"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
 
 
 class AuthenticationViewSet(viewsets.ViewSet):

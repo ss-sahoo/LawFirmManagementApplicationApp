@@ -1453,11 +1453,16 @@ class FinanceOverviewViewSet(viewsets.ViewSet):
                     'pending_count': pi_billed.filter(status__in=['sent', 'overdue']).count() + ci_billed.filter(status__in=['sent', 'viewed', 'overdue', 'partially_paid']).count(),
                 })
 
-            # Firm breakdown — who paid, who is pending
+            # Firm breakdown — who paid, who is pending (firms, solo advocates, clients)
             firm_breakdown = []
+            
+            # Platform invoices (firms and solo advocates)
             for pi in all_pi.filter(invoice_date__year=year).exclude(status='draft').order_by('firm__firm_name', 'invoice_date'):
                 firm_breakdown.append({
-                    'firm_name': pi.firm.firm_name if pi.firm else '—',
+                    'type': 'platform',  # subscription invoice
+                    'firm_name': pi.firm.firm_name if pi.firm else 'Solo Advocate',
+                    'advocate_name': None,
+                    'client_name': None,
                     'invoice_number': pi.invoice_number,
                     'invoice_date': pi.invoice_date.isoformat(),
                     'due_date': pi.due_date.isoformat(),
@@ -1467,6 +1472,30 @@ class FinanceOverviewViewSet(viewsets.ViewSet):
                     'balance_due': float(pi.balance_due),
                     'status': pi.status,
                     'payment_date': pi.payment_date.isoformat() if pi.payment_date else None,
+                })
+            
+            # Client invoices (from solo advocates or firms)
+            for ci in all_ci.filter(invoice_date__year=year).exclude(status='draft').order_by('firm__firm_name', 'invoice_date'):
+                advocate_name = None
+                if ci.case and ci.case.assigned_advocate:
+                    advocate_name = ci.case.assigned_advocate.get_full_name() or ci.case.assigned_advocate.email
+                
+                client_name = ci.client.get_full_name() if ci.client else '—'
+                
+                firm_breakdown.append({
+                    'type': 'client',  # client invoice
+                    'firm_name': ci.firm.firm_name if ci.firm else 'Solo Advocate',
+                    'advocate_name': advocate_name,
+                    'client_name': client_name,
+                    'invoice_number': ci.invoice_number,
+                    'invoice_date': ci.invoice_date.isoformat(),
+                    'due_date': ci.due_date.isoformat(),
+                    'plan': 'Client Invoice',
+                    'total_amount': float(ci.total_amount),
+                    'paid_amount': float(ci.paid_amount),
+                    'balance_due': float(ci.balance_due),
+                    'status': ci.status,
+                    'payment_date': ci.payment_date.isoformat() if ci.payment_date else None,
                 })
 
         else:  # super_admin / admin

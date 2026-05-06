@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, IndianRupee, FileText, CreditCard,
-  Activity, Loader2, AlertCircle, Lock, ChevronDown,
+  Activity, Loader2, AlertCircle, Lock, ChevronDown, X,
 } from 'lucide-react';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
@@ -36,6 +36,7 @@ export default function FinanceReportsPage({ role }: Props) {
   const [loading, setLoading] = useState(true);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -271,8 +272,19 @@ export default function FinanceReportsPage({ role }: Props) {
                   const hasData = m.total_revenue > 0 || m.expenses > 0;
                   const collected = m.total_collected ?? m.total_revenue;
                   return (
-                    <tr key={i} className={`transition-colors ${hasData ? 'hover:bg-gray-50/50' : 'opacity-40'}`}>
-                      <td className="px-6 py-3.5 text-sm font-bold text-gray-900">{m.month}</td>
+                    <tr 
+                      key={i} 
+                      onClick={() => hasData && isPlatformOwner ? setSelectedMonth(selectedMonth === m.month ? null : m.month) : null}
+                      className={`transition-colors ${hasData ? (isPlatformOwner ? 'hover:bg-blue-50/50 cursor-pointer' : 'hover:bg-gray-50/50') : 'opacity-40'} ${selectedMonth === m.month ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                    >
+                      <td className="px-6 py-3.5 text-sm font-bold text-gray-900 flex items-center gap-2">
+                        {m.month}
+                        {isPlatformOwner && hasData && (
+                          <span className="text-xs text-blue-600 font-medium">
+                            {selectedMonth === m.month ? '▼' : '▶'}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3.5 text-sm font-semibold text-blue-700 text-right">{m.total_revenue > 0 ? fmtFull(m.total_revenue) : '—'}</td>
                       <td className="px-4 py-3.5 text-sm font-semibold text-emerald-700 text-right">{collected > 0 ? fmtFull(collected) : '—'}</td>
                       {isPlatformOwner && <td className="px-4 py-3.5 text-sm font-semibold text-purple-700 text-right">{m.client_revenue > 0 ? fmtFull(m.client_revenue) : '—'}</td>}
@@ -312,6 +324,101 @@ export default function FinanceReportsPage({ role }: Props) {
             </table>
           </div>
         </div>
+
+        {/* Month drill-down panel */}
+        {selectedMonth && isPlatformOwner && data?.firm_breakdown && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-blue-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">{selectedMonth} {year} — Complete Breakdown</h3>
+                  <p className="text-sm text-gray-500">All invoices for this month: firms, solo advocates, and clients</p>
+                </div>
+                <button onClick={() => setSelectedMonth(null)} className="p-2 hover:bg-blue-100 rounded-xl transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3">Type</th>
+                    <th className="px-4 py-3">Firm/Advocate</th>
+                    <th className="px-4 py-3">Client/Plan</th>
+                    <th className="px-4 py-3">Invoice #</th>
+                    <th className="px-4 py-3">Invoice Date</th>
+                    <th className="px-4 py-3">Due Date</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                    <th className="px-4 py-3 text-right">Paid</th>
+                    <th className="px-4 py-3 text-right">Balance</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3">Payment Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {data.firm_breakdown
+                    .filter((inv: any) => {
+                      const invMonth = new Date(inv.invoice_date).toLocaleDateString('en-US', { month: 'short' });
+                      return invMonth === selectedMonth;
+                    })
+                    .map((inv: any, i: number) => {
+                      const isPaid = inv.status === 'paid';
+                      const isOverdue = inv.status === 'overdue';
+                      const isSubscription = inv.type === 'platform';
+                      return (
+                        <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-3.5">
+                            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${
+                              isSubscription ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {isSubscription ? 'Subscription' : 'Client'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-sm font-bold text-gray-900">
+                            {inv.firm_name}
+                            {inv.advocate_name && (
+                              <div className="text-xs text-gray-500 font-normal">{inv.advocate_name}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-sm text-gray-600">
+                            {isSubscription ? inv.plan : inv.client_name || '—'}
+                          </td>
+                          <td className="px-4 py-3.5 text-sm font-semibold text-blue-600">{inv.invoice_number}</td>
+                          <td className="px-4 py-3.5 text-sm text-gray-600">{new Date(inv.invoice_date).toLocaleDateString()}</td>
+                          <td className="px-4 py-3.5 text-sm text-gray-600">{new Date(inv.due_date).toLocaleDateString()}</td>
+                          <td className="px-4 py-3.5 text-sm font-bold text-gray-900 text-right">{fmtFull(inv.total_amount)}</td>
+                          <td className="px-4 py-3.5 text-sm font-bold text-emerald-600 text-right">{fmtFull(inv.paid_amount)}</td>
+                          <td className="px-4 py-3.5 text-sm font-bold text-red-600 text-right">{fmtFull(inv.balance_due)}</td>
+                          <td className="px-4 py-3.5 text-center">
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider ${
+                              isPaid ? 'bg-emerald-100 text-emerald-700' :
+                              isOverdue ? 'bg-red-100 text-red-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {inv.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-sm text-gray-600">
+                            {inv.payment_date ? new Date(inv.payment_date).toLocaleDateString() : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+              {data.firm_breakdown.filter((inv: any) => {
+                const invMonth = new Date(inv.invoice_date).toLocaleDateString('en-US', { month: 'short' });
+                return invMonth === selectedMonth;
+              }).length === 0 && (
+                <div className="p-8 text-center text-gray-500">
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm font-medium">No invoices found for {selectedMonth} {year}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

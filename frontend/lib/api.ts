@@ -21,7 +21,10 @@ export const API = {
     REGISTER: "/api/users/register/",
     ADD_USER: "/api/users/add_user/",
     SWITCH_FIRM: "/api/users/switch_firm/",
-    CHANGE_PASSWORD: "/api/users/change_password/"
+    CHANGE_PASSWORD: "/api/users/change_password/",
+    // Phone verification endpoints
+    SEND_PHONE_OTP: "/api/users/send_phone_otp/",
+    VERIFY_PHONE_OTP: "/api/users/verify_phone_otp/"
   },
   FIRMS: {
     LIST: "/api/firms/",
