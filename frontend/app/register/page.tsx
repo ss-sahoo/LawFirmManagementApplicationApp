@@ -9,6 +9,7 @@ import { Country, State, City } from 'country-state-city';
 import { customFetch } from '@/lib/fetch';
 import { API } from '@/lib/api';
 import { PasswordInput } from '@/components/platform/ui';
+import PhoneVerification from '@/components/PhoneVerification';
 
 export default function RegisterWizard() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function RegisterWizard() {
   const [registerType, setRegisterType] = useState<'client' | 'super_admin' | 'advocate'>('client');
   const [currentStep, setCurrentStep] = useState(0);
   const [trialEnabled, setTrialEnabled] = useState(true);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -411,7 +413,7 @@ export default function RegisterWizard() {
               <p className="text-gray-500 text-sm">Secure your account credentials.</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 grid grid-cols-1 gap-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-6">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="sm:col-span-2">
@@ -425,12 +427,27 @@ export default function RegisterWizard() {
                   type="tel"
                   required
                   value={formData.phone_number}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    setPhoneVerified(false); // Reset verification when phone changes
+                  }}
                   maxLength={10}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#0e2340]/20 focus:border-[#0e2340] text-[15px] font-medium text-slate-900 placeholder-slate-400"
                   placeholder="9876543210"
                 />
               </div>
+            </div>
+
+            {/* Phone Verification Component */}
+            {formData.phone_number && formData.phone_number.length === 10 && !phoneVerified && (
+              <PhoneVerification
+                phoneNumber={formData.phone_number}
+                onVerified={() => setPhoneVerified(true)}
+                purpose="registration"
+              />
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Password</label>
                 <PasswordInput
@@ -596,8 +613,8 @@ export default function RegisterWizard() {
 
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="px-8 py-3.5 rounded-xl shadow-lg text-[15px] font-bold text-white bg-[#0e2340] hover:bg-[#1a3a5c] transition-all flex items-center gap-2 disabled:opacity-50"
+                    disabled={loading || (currentStep === stepsList.length - 1 && !phoneVerified)}
+                    className="px-8 py-3.5 rounded-xl shadow-lg text-[15px] font-bold text-white bg-[#0e2340] hover:bg-[#1a3a5c] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <div className="flex items-center gap-2">
@@ -605,7 +622,10 @@ export default function RegisterWizard() {
                         Processing...
                       </div>
                     ) : currentStep === stepsList.length - 1 ? (
-                      <>Continue <KeyRound className="w-4 h-4" /></>
+                      <>
+                        {phoneVerified ? 'Complete Registration' : 'Verify Phone to Continue'}
+                        <KeyRound className="w-4 h-4" />
+                      </>
                     ) : (
                       <>Continue <ChevronRight className="w-4 h-4" /></>
                     )}

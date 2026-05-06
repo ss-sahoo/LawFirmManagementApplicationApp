@@ -212,7 +212,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 )
         
         # Generate and send OTP
-        otp_code = generate_otp()
+        from django.conf import settings
+        
+        # TEST MODE: Use 999999 as OTP
+        if getattr(settings, 'OTP_TEST_MODE', False):
+            otp_code = '999999'
+        else:
+            otp_code = generate_otp()
+        
         expires_at = timezone.now() + timedelta(minutes=10)
         
         # Store OTP in cache for registration, or in DB for profile update
@@ -240,8 +247,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         # Send SMS
         send_otp_sms(phone_number, otp_code)
         
+        from django.conf import settings
+        message = f'OTP sent to {phone_number}'
+        if getattr(settings, 'OTP_TEST_MODE', False):
+            message += ' (TEST MODE: Use 999999)'
+        
         return Response({
-            'message': f'OTP sent to {phone_number}',
+            'message': message,
             'expires_in_minutes': 10
         }, status=status.HTTP_200_OK)
     
@@ -264,6 +276,22 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         
         if purpose == 'registration':
             from django.core.cache import cache
+            from django.conf import settings
+            
+            # TEST MODE: Accept 999999 as valid OTP in development
+            if getattr(settings, 'OTP_TEST_MODE', False) and otp == '999999':
+                cache_key = f'phone_otp_{phone_number}'
+                cache.set(cache_key, {
+                    'otp': '999999',
+                    'expires_at': (timezone.now() + timedelta(hours=1)).isoformat(),
+                    'attempts': 0,
+                    'verified': True
+                }, timeout=3600)
+                return Response({
+                    'message': 'Phone number verified successfully (TEST MODE)',
+                    'verified': True
+                }, status=status.HTTP_200_OK)
+            
             cache_key = f'phone_otp_{phone_number}'
             otp_data = cache.get(cache_key)
             
