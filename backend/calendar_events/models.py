@@ -49,7 +49,7 @@ class CalendarEvent(models.Model):
     court_name = models.CharField(max_length=255, blank=True)
     
     # Associations
-    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, related_name='calendar_events')
+    firm = models.ForeignKey('firms.Firm', on_delete=models.CASCADE, null=True, blank=True, related_name='calendar_events')
     case = models.ForeignKey('cases.Case', on_delete=models.CASCADE, null=True, blank=True, related_name='calendar_events')
     client = models.ForeignKey('clients.Client', on_delete=models.SET_NULL, null=True, blank=True, related_name='calendar_events')
     
